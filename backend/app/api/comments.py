@@ -6,11 +6,14 @@ from pydantic import BaseModel, Field
 from app.api.deps import Conn
 from app.core.db import fetch_all, fetch_one
 from app.core.errors import DomainError
-from app.core.security import CurrentUser
+from app.core.security import CurrentUser, LoginThrottle
 from app.services import access
 from app.services.queue import enqueue_comment_check
 
 router = APIRouter(tags=["comentários"])
+# teto de verificações pela IA (cada uma pode chamar a API da Anthropic): por usuário e por revisão, em memória
+COTA_IA_USUARIO = LoginThrottle(max_fail=20, window_s=3600)
+COTA_IA_REVISAO = LoginThrottle(max_fail=3, window_s=600)
 
 
 class CommentIn(BaseModel):
@@ -75,6 +78,13 @@ async def resolve(comment_id: str, body: ResolveIn, conn: Conn, user: CurrentUse
 async def check_comments(revision_id: str, conn: Conn, user: CurrentUser, bg: BackgroundTasks) -> dict[str, str]:
     """Pede à IA para verificar se os comentários da revisão anterior foram atendidos nesta.
     O resultado são PROPOSTAS (ai_suggestion) — só um humano as aplica (INV-AI-001)."""
-    await access.require(conn, await access.project_of_revision(conn, revision_id), user)
+    await access.require(conn, await access.project_of_revision(conn, revision_id), user,
+                         access.WRITE_ROLES + ("REVISOR",))
+    ku, kr = f"u:{user.id}", f"r:{revision_id}"
+    espera = max(COTA_IA_USUARIO.retry_after(ku), COTA_IA_REVISAO.retry_after(kr))
+    if espera:
+        raise DomainError(f"Limite de verificações pela IA atingido; tente de novo em {espera // 60 + 1} min", 429)
+    COTA_IA_USUARIO.fail(ku)
+    COTA_IA_REVISAO.fail(kr)
     bg.add_task(enqueue_comment_check, revision_id)
     return {"status": "enfileirado"}

@@ -141,6 +141,8 @@ async def _seed() -> dict[str, str]:
                 """INSERT INTO document (project_id, code, title, discipline_code, doc_type_code, created_by, confidentiality)
                    VALUES ($1, $2, 'Doc', 'MEC', 'DE', $3, $4) RETURNING id""",
                 ids["p"], f"{code}-MEC-DE-000{n}", ids["autor"], conf))
+            ids["r_" + k] = str(await conn.fetchval(
+                "INSERT INTO revision (document_id, label, created_by) VALUES ($1, 'A', $2) RETURNING id", ids[k], ids["autor"]))
             ids["s_" + k] = str(await conn.fetchval(
                 """INSERT INTO ai_suggestion (kind, target_type, target_id, payload, engine)
                    VALUES ('CLASSIFICACAO', 'document', $1, '{"evidence": "segredo"}', 'teste') RETURNING id""", ids[k]))
@@ -266,6 +268,17 @@ def test_arquivo_ativo_nao_abre_inline(api: tuple[Any, dict[str, str]], monkeypa
     assert r.headers["content-type"].startswith(tipo)
     assert r.headers["x-content-type-options"] == "nosniff"
     assert ("sandbox" in r.headers.get("content-security-policy", "")) is sandbox
+
+
+def test_verificacao_por_ia_exige_perfil_e_tem_cota(api: tuple[Any, dict[str, str]],
+                                                   monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.api import comments
+    cli, ids = api
+    monkeypatch.setattr(comments, "enqueue_comment_check", lambda rid: None)
+    rota = f"/api/revisions/{ids['r_interno']}/check-comments"
+    assert cli.post(rota, headers=_bearer(ids, "leitor")).status_code == 403        # LEITOR não dispara a IA
+    codigos = [cli.post(rota, headers=_bearer(ids, "autor")).status_code for _ in range(4)]
+    assert codigos == [202, 202, 202, 429]                                          # 3 por revisão a cada 10 min
 
 
 def test_openapi_fora_de_producao_apenas() -> None:
