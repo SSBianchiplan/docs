@@ -136,7 +136,7 @@ cp .env.example .env          # troque os segredos (openssl rand -hex 32)
 docker compose up -d --build
 ```
 
-Abra <http://localhost:8080> (ou a porta de `WEB_PORT`). Entre com `BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD` e defina a nova senha. Documentação da API em `/api/docs`.
+Abra <http://localhost:8080> (ou a porta de `WEB_PORT`). Entre com `BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD` e defina a nova senha. Documentação da API em `/api/docs` só com `APP_ENV=dev` (em produção o Swagger e o OpenAPI ficam desligados, e a API não sobe com `JWT_SECRET` ou `BOOTSTRAP_ADMIN_PASSWORD` padrão).
 
 **Primeiro roteiro:** Projetos → *Novo projeto* (máscara, áreas, disciplinas, equipe) → Lista mestra → *Novo documento* (arraste o PDF) → *Enviar para verificação* → revisor e controlador aprovam em Pendências → GRD → *Emitir* → registrar o retorno do cliente → *Nova revisão*.
 
@@ -243,7 +243,7 @@ Leia o [guia de contribuição](CONTRIBUTING.md), abra uma [issue](../../issues/
 
 Código próprio sob a **[licença MIT](LICENSE)** — Copyright (c) 2026 GPlanSiS.
 
-Nenhum código de terceiros está copiado no repositório; as dependências são instaladas por pip/npm ou usadas como imagens Docker, cada uma sob a própria licença — entre elas FastAPI (MIT), SQLAlchemy (MIT), React (MIT), PDF.js (Apache-2.0), fontes Barlow e IBM Plex Mono (SIL OFL 1.1, via `@fontsource`), Tesseract (Apache-2.0), OCRmyPDF (MPL-2.0), Gotenberg (MIT) e, dentro da imagem do backend, Ghostscript (AGPL-3.0, instalado pelo `apt` e executado como processo externo).
+Fora as fontes em `gotenberg/fonts/`, nenhum código de terceiros está copiado no repositório; as dependências são instaladas por pip/npm ou usadas como imagens Docker, cada uma sob a própria licença — entre elas FastAPI (MIT), SQLAlchemy (MIT), React (MIT), PDF.js (Apache-2.0), fontes Barlow e IBM Plex Mono (SIL OFL 1.1, via `@fontsource`), Tesseract (Apache-2.0), OCRmyPDF (MPL-2.0), Gotenberg (MIT; a imagem `gotenberg/` acrescenta as fontes IBM Plex Sans, Serif e Mono, SIL OFL 1.1, copiadas de google/fonts com a licença em `gotenberg/fonts/OFL.txt`) e, dentro da imagem do backend, Ghostscript (AGPL-3.0, instalado pelo `apt` e executado como processo externo).
 
 ## Créditos
 

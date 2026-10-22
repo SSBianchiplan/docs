@@ -400,6 +400,10 @@ async def _file_row(conn: Any, file_id: str, user: CurrentUser) -> dict[str, Any
     return row
 
 
+MIME_INLINE = frozenset({"application/pdf", "image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp",
+                         "image/tiff", "text/plain"})
+
+
 @router.get("/files/{file_id}/content")
 async def file_content(file_id: str, conn: Conn, user: CurrentUser,
                        variant: Literal["original", "archive"] = "original",
@@ -410,10 +414,15 @@ async def file_content(file_id: str, conn: Conn, user: CurrentUser,
         key, mime = storage.key_for(row["archive_sha256"]), "application/pdf"
         name = name.rsplit(".", 1)[0] + "_pdfa.pdf"
     data = await storage.get_bytes(key)
-    disp = "attachment" if download else "inline"
-    return Response(data, media_type=mime, headers={
-        "Content-Disposition": f"{disp}; filename*=UTF-8''{quote(name)}",
-        "Cache-Control": "private, max-age=3600"})
+    # o MIME veio do cliente no upload: só tipos inertes abrem inline; o resto (HTML, SVG, XML…) é baixado.
+    # CSP sandbox + nosniff: mesmo aberto direto na origem do Docs, o arquivo não roda script nem lê a sessão.
+    inline_ok = (mime or "").split(";")[0].strip().lower() in MIME_INLINE
+    disp = "inline" if inline_ok and not download else "attachment"
+    headers = {"Content-Disposition": f"{disp}; filename*=UTF-8''{quote(name)}",
+               "X-Content-Type-Options": "nosniff", "Cache-Control": "private, max-age=3600"}
+    if mime != "application/pdf":   # o visualizador de PDF do Chrome não abre sob CSP sandbox; PDF não roda script na origem
+        headers["Content-Security-Policy"] = "sandbox; default-src 'none'; img-src data:; style-src 'unsafe-inline'"
+    return Response(data, media_type=mime if inline_ok else "application/octet-stream", headers=headers)
 
 
 @router.get("/files/{file_id}/thumb")

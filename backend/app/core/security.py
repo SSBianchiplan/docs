@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import re
 import time
 from collections import deque
 from datetime import UTC, datetime, timedelta
@@ -24,6 +25,7 @@ class Principal(BaseModel):
     name: str
     is_admin: bool
     iat: int = 0
+    integracao: str | None = None   # "drawings" | "writer" | "sheets" quando a chamada vem de um sistema integrado
 
 
 def hash_password(pw: str) -> str:
@@ -80,19 +82,51 @@ def chave_integracao(finalidade: str, sistema: str = "drawings") -> bytes | None
     return hmac.new(seg.encode(), finalidade.encode(), hashlib.sha256).digest()
 
 
-async def _principal_integracao(chave: str, email: str) -> Principal:
+# O que um sistema integrado pode chamar "em nome de" um usuário (método, caminho). Fora disto, 403:
+# a chave de integração não abre administração de usuários, configurações, auditoria, IA, busca etc.
+ROTAS_INTEGRACAO: tuple[tuple[str, re.Pattern[str]], ...] = tuple((m, re.compile(p)) for m, p in (
+    ("GET", r"^/api/catalog$"),
+    ("GET", r"^/api/projects$"),
+    ("GET", r"^/api/projects/[^/]+/members$"),
+    ("POST", r"^/api/documents$"),
+    ("PATCH", r"^/api/documents/[^/]+$"),
+    ("POST", r"^/api/documents/[^/]+/revisions$"),
+    ("POST", r"^/api/revisions/[^/]+/files$"),
+    ("POST", r"^/api/revisions/[^/]+/workflow$"),
+    ("GET", r"^/api/integracao/documentos/[^/]+/estado$"),
+    ("DELETE", r"^/api/integracao/revisoes/[^/]+/arquivos-(drawings|writer|sheets)$"),
+    ("POST", r"^/api/integracao/pdf$"),
+))
+
+
+def rota_integracao_permitida(metodo: str, rota: str) -> bool:
+    return any(metodo == m and p.match(rota) for m, p in ROTAS_INTEGRACAO)
+
+
+def _sistema_da_chave(chave: str) -> str | None:
+    for sis in ("drawings", "writer", "sheets"):
+        k = chave_integracao("api", sis)
+        if k and hmac.compare_digest(chave.encode(), k.hex().encode()):
+            return sis
+    return None
+
+
+async def _principal_integracao(request: Request, chave: str, email: str) -> Principal:
     """Chamada do servidor de um sistema integrado em nome de um usuário: valida a chave e devolve o usuário real.
-    As regras de papel por projeto, a trava de autoria e a auditoria valem como se ele estivesse logado."""
-    if not any((k := chave_integracao("api", sis)) and hmac.compare_digest(chave.encode(), k.hex().encode())
-               for sis in ("drawings", "writer", "sheets")):
+    As regras de papel por projeto, a trava de autoria e a auditoria valem como se ele estivesse logado.
+    Só as rotas de ROTAS_INTEGRACAO aceitam este principal."""
+    sistema = _sistema_da_chave(chave)
+    if not sistema:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Chave de integração inválida")
+    if not rota_integracao_permitida(request.method, request.url.path):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Rota não disponível para a integração")
     from app.core.db import engine, fetch_one  # import tardio: db depende de config, não de security
     async with engine().connect() as conn:
         u = await fetch_one(conn, "SELECT id::text, email::text, name, is_admin, is_active FROM app_user WHERE email = :e",
                             e=email.strip().lower())
     if not u or not u["is_active"]:
         raise HTTPException(status.HTTP_403_FORBIDDEN, f"{email} não tem conta ativa no GPlanSiS|Docs")
-    return Principal(id=u["id"], email=u["email"], name=u["name"], is_admin=u["is_admin"], iat=0)
+    return Principal(id=u["id"], email=u["email"], name=u["name"], is_admin=u["is_admin"], iat=0, integracao=sistema)
 
 
 async def current_user(
@@ -102,7 +136,7 @@ async def current_user(
 ) -> Principal:
     integ = request.headers.get("x-integracao")
     if integ:
-        return await _principal_integracao(integ, request.headers.get("x-em-nome-de", ""))
+        return await _principal_integracao(request, integ, request.headers.get("x-em-nome-de", ""))
     # Bearer só aceita sessão (api); ?token= só aceita escopo "file" (curto, para <img>/visualizador)
     if cred:
         p = _decode(cred.credentials)

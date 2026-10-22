@@ -31,12 +31,14 @@ from app.core.db import fetch_all, fetch_one, open_tx
 from app.core.errors import DomainError
 from app.core.security import CurrentUser, chave_integracao, issue_token
 from app.services import access
+from app.services.html_pdf import sanear_html
 
 router = APIRouter(prefix="/integracao", tags=["integração"])
 SSO_VALIDADE = 120
 MARCA_ARQUIVO = ".drawings."     # arquivos enviados pelo Drawings levam isto no nome
 MARCA_WRITER = ".writer."        # e os do Writer, isto
 MARCA_SHEETS = ".sheets."        # e os do Sheets, isto
+LIMITE_HTML_PDF = 60 * 1024 * 1024
 SISTEMAS = {"drawings": "GPlanSiS|Drawings", "writer": "GPlanSiS|Writer", "sheets": "GPlanSiS|Sheets"}
 
 
@@ -248,13 +250,21 @@ async def limpa_arquivos_sheets(revision_id: str, conn: Conn, user: CurrentUser)
     return {"removidos": len(rows)}
 
 
+SISTEMAS_PDF = ("writer", "sheets")     # quem gera PDF de revisão por esta rota
+
+
 @router.post("/pdf")
-async def html_para_pdf(user: CurrentUser, arquivo: UploadFile = File(...)) -> Response:
+async def html_para_pdf(conn: Conn, user: CurrentUser, arquivo: UploadFile = File(...)) -> Response:
     """HTML → PDF pelo Chromium do Gotenberg (mesmo motor da impressão do navegador): o Writer manda o HTML
-    de impressão, com @page (tamanho, margens, cabeçalho, rodapé e "Página X de Y"), e recebe o PDF."""
-    html = await arquivo.read()
-    if len(html) > 60 * 1024 * 1024:
+    de impressão, com @page (tamanho, margens, cabeçalho, rodapé e "Página X de Y"), e recebe o PDF.
+    Só o servidor do Writer/Sheets (chave de integração) chama esta rota; o HTML é saneado e montado num
+    modelo fixo antes de ir ao Gotenberg, que roda sem JavaScript, com deny-list e sem saída de rede."""
+    if user.integracao not in SISTEMAS_PDF:
+        raise DomainError("Conversão HTML → PDF só pela integração do GPlanSiS|Writer ou do GPlanSiS|Sheets", 403)
+    html = await arquivo.read(LIMITE_HTML_PDF + 1)
+    if len(html) > LIMITE_HTML_PDF:
         raise DomainError("HTML grande demais para converter (máx. 60 MB)", 413)
+    html = sanear_html(html)
     try:
         async with httpx.AsyncClient(timeout=180) as cli:
             r = await cli.post(f"{get_settings().gotenberg_url}/forms/chromium/convert/html",
@@ -263,5 +273,5 @@ async def html_para_pdf(user: CurrentUser, arquivo: UploadFile = File(...)) -> R
     except httpx.HTTPError as e:
         raise DomainError(f"Conversor de PDF indisponível ({type(e).__name__})", 502) from e
     if r.status_code != 200 or not r.content.startswith(b"%PDF"):
-        raise DomainError(f"O conversor não gerou o PDF ({r.status_code}): {r.text[:200]}", 502)
+        raise DomainError(f"O conversor não gerou o PDF ({r.status_code})", 502)
     return Response(r.content, media_type="application/pdf")

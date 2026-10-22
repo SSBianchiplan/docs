@@ -23,6 +23,10 @@ log = logging.getLogger(__name__)
 IMAGE_MIMES = {"image/png", "image/jpeg", "image/tiff", "image/bmp", "image/webp", "image/gif"}
 OFFICE_EXT = {".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".odt", ".ods", ".odp", ".rtf", ".txt", ".csv"}
 CAD_EXT = {".dwg", ".dxf", ".dgn", ".rvt", ".nwd", ".ifc", ".step", ".stp"}
+# Tetos contra arquivo hostil (bomba de descompressão, página gigante): o worker processa PDF/imagem não confiável.
+MAX_IMAGE_PIXELS = 120_000_000        # imagem de entrada (≈ A0 a 300 dpi em escala de cinza)
+MAX_RENDER_PIXELS = 160_000_000       # bitmap de uma página no OCR; acima disso o DPI da página é reduzido
+MAX_PAGE_PT = 14_400                  # 5,08 m de lado (200 pol.): maior que isso não é desenho técnico real
 
 
 class Unsupported(Exception):
@@ -38,7 +42,10 @@ def to_pdf(data: bytes, mime: str, filename: str, s: Settings) -> bytes:
     if mime in IMAGE_MIMES:
         import img2pdf
         from PIL import Image
+        Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS    # acima de 2x isso o PIL recusa (DecompressionBombError)
         img = Image.open(io.BytesIO(data))
+        if img.width * img.height > MAX_IMAGE_PIXELS:
+            raise Unsupported(f"Imagem de {img.width}x{img.height} px excede o limite de {MAX_IMAGE_PIXELS // 1_000_000} MP")
         if img.mode in ("RGBA", "P", "LA") or mime in ("image/webp", "image/gif", "image/bmp"):
             buf = io.BytesIO()
             img.convert("RGB").save(buf, format="PNG")
@@ -57,8 +64,18 @@ def to_pdf(data: bytes, mime: str, filename: str, s: Settings) -> bytes:
     raise Unsupported(f"Tipo {mime} sem extração de texto")
 
 
+def _safe_scale(page: Any, scale: float) -> float:
+    """Escala de renderização limitada por MAX_RENDER_PIXELS (página enorme não estoura a memória)."""
+    w, h = page.get_size()
+    if w <= 0 or h <= 0 or w > MAX_PAGE_PT or h > MAX_PAGE_PT:
+        raise Unsupported(f"Página de {w:.0f}x{h:.0f} pt fora dos limites (máx. {MAX_PAGE_PT} pt de lado)")
+    if w * h * scale * scale > MAX_RENDER_PIXELS:
+        scale = (MAX_RENDER_PIXELS / (w * h)) ** 0.5
+    return scale
+
+
 def _render(page: Any, dpi: int) -> np.ndarray[Any, Any]:
-    bmp = page.render(scale=dpi / 72, grayscale=True)
+    bmp = page.render(scale=_safe_scale(page, dpi / 72), grayscale=True)
     return np.ascontiguousarray(bmp.to_numpy())
 
 
@@ -72,7 +89,7 @@ def _titleblock_native(page: object) -> str:
 def _thumbnail(pdf: object) -> bytes:
     page = pdf[0]  # type: ignore[index]
     w, _ = page.get_size()
-    img = page.render(scale=480 / w).to_pil()
+    img = page.render(scale=_safe_scale(page, min(480 / w, 4.0))).to_pil()
     buf = io.BytesIO()
     img.save(buf, format="WEBP", quality=78)
     return buf.getvalue()
@@ -84,7 +101,8 @@ def _archive(pdf_bytes: bytes, s: Settings) -> bytes | None:
         src, dst = Path(d) / "in.pdf", Path(d) / "out.pdf"
         src.write_bytes(pdf_bytes)
         base = ["ocrmypdf", "--skip-text", "--rotate-pages", "--output-type", "pdfa", "--optimize", "1",
-                "-l", s.ocr_languages, "--jobs", "2", "-q"]
+                "-l", s.ocr_languages, "--jobs", "2", "-q",
+                "--max-image-mpixels", str(MAX_RENDER_PIXELS // 1_000_000)]
         for extra in (["--deskew"], []):
             proc = subprocess.run([*base, *extra, str(src), str(dst)], capture_output=True, timeout=1800, check=False)
             if proc.returncode in (0, 6):          # 6 = já tinha texto em todas as páginas

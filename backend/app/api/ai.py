@@ -18,12 +18,32 @@ class DecideIn(BaseModel):
     decision: Literal["APLICADA", "REJEITADA"]
 
 
+# documento de cada sugestão (pelo alvo), para aplicar a mesma regra de acesso da lista mestra e dos arquivos:
+# membro do projeto (ou admin) e, em documento RESTRITO, nada para LEITOR/EXTERNO.
+_DOC_DA_SUGESTAO = """
+    CASE s.target_type
+      WHEN 'document' THEN s.target_id
+      WHEN 'revision' THEN (SELECT r.document_id FROM revision r WHERE r.id = s.target_id)
+      WHEN 'revision_file' THEN (SELECT r.document_id FROM revision_file f JOIN revision r ON r.id = f.revision_id
+                                  WHERE f.id = s.target_id)
+      ELSE (SELECT r.document_id FROM revision_comment c JOIN revision r ON r.id = c.revision_id WHERE c.id = s.target_id)
+    END"""
+
+
 @router.get("")
-async def list_suggestions(conn: Conn, user: CurrentUser, status: str = "PROPOSTA") -> list[dict[str, Any]]:
-    return await fetch_all(conn, """
+async def list_suggestions(conn: Conn, user: CurrentUser, status: str = "PROPOSTA",
+                           project_id: str | None = None) -> list[dict[str, Any]]:
+    return await fetch_all(conn, f"""
         SELECT s.id::text, s.kind, s.target_type, s.target_id::text, s.payload, s.confidence, s.engine,
-               s.status, s.created_at
-          FROM ai_suggestion s WHERE s.status = :s ORDER BY s.created_at DESC LIMIT 200""", s=status)
+               s.status, s.created_at, d.project_id::text AS project_id
+          FROM ai_suggestion s
+          JOIN document d ON d.id = ({_DOC_DA_SUGESTAO})
+          LEFT JOIN project_member m ON m.project_id = d.project_id AND m.user_id = CAST(:u AS uuid)
+         WHERE s.status = :s
+           AND (CAST(:p AS uuid) IS NULL OR d.project_id = CAST(:p AS uuid))
+           AND (:adm OR (m.role IS NOT NULL
+                         AND NOT (d.confidentiality = 'RESTRITO' AND m.role IN ('LEITOR', 'EXTERNO'))))
+         ORDER BY s.created_at DESC LIMIT 200""", s=status, u=user.id, adm=user.is_admin, p=project_id)
 
 
 async def _project_for(conn: Any, target_type: str, target_id: str) -> str:

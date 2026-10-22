@@ -1,9 +1,10 @@
 name: gplansis-docs
 
 x-backend-env: &backend-env
-  DATABASE_URL: postgresql+asyncpg://edms:${POSTGRES_PASSWORD}@db:5432/edms
+  DATABASE_URL: postgresql+asyncpg://edms:${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}@db:5432/edms
   REDIS_URL: redis://redis:6379/0
-  JWT_SECRET: ${JWT_SECRET}
+  APP_ENV: ${APP_ENV:-producao}                 # producao: a API não sobe com JWT_SECRET/BOOTSTRAP_ADMIN_PASSWORD padrão
+  JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env (openssl rand -hex 32)}
   STORAGE_BACKEND: ${STORAGE_BACKEND:-fs}   # fs = volume "blobs"; s3 = defina S3_* e um serviço S3
   STORAGE_DIR: /data/blobs
   S3_ENDPOINT: ${S3_ENDPOINT:-minio:9000}
@@ -21,7 +22,7 @@ x-backend-env: &backend-env
   ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5}
   CONFIG_SEGREDO: ${CONFIG_SEGREDO:-}            # cifra a chave da IA guardada pelo painel Configurações
   BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL}
-  BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD}
+  BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:?defina BOOTSTRAP_ADMIN_PASSWORD no .env}
   BOOTSTRAP_ADMIN_NAME: ${BOOTSTRAP_ADMIN_NAME:-Administrador}
   API_WORKERS: ${API_WORKERS:-2}
   # integração com o GPlanSiS|Drawings (mesmo segredo no .env do Drawings: DRAWINGS_DOCS_SEGREDO)
@@ -39,7 +40,9 @@ x-backend-env: &backend-env
 
 services:
   db:
-    image: pgvector/pgvector:pg16
+    # tag + digest fixos (o mesmo conteúdo que já roda); atualizar de propósito, com backup antes
+    image: pgvector/pgvector:pg16@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b
+    networks: [dados]
     environment:
       POSTGRES_DB: edms
       POSTGRES_USER: edms
@@ -52,13 +55,35 @@ services:
     restart: unless-stopped
 
   redis:
-    image: redis:7-alpine
+    image: redis:7.4.11-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
+    networks: [dados]
     command: ["redis-server", "--appendonly", "yes"]
     volumes: [redisdata:/data]
     restart: unless-stopped
 
-  gotenberg:                            # Office → PDF (LibreOffice headless)
-    image: gotenberg/gotenberg:8
+  gotenberg:                            # Office → PDF (LibreOffice) e HTML → PDF (Chromium)
+    # 8.38.1 + fontes IBM Plex (gotenberg/Dockerfile). Endurecido: Chromium sem JavaScript, sem http(s)/ws/ftp
+    # e sem file:// fora do diretório do próprio pedido; downloadFrom e webhook desligados; rede só interna.
+    build: ./gotenberg
+    image: gplansis-docs-gotenberg:8.38.1
+    command:
+      - gotenberg
+      - --chromium-disable-javascript=true
+      - --chromium-deny-list=^(https?|wss?|ftp)://.*
+      - --chromium-deny-list=^file:(?!///tmp/).*
+      - --chromium-deny-private-ips=true
+      - --chromium-deny-public-ips=true
+      - --api-download-from-deny-list=.*
+      - --api-download-from-deny-private-ips=true
+      - --api-download-from-deny-public-ips=true
+      - --webhook-deny-list=.*
+      - --webhook-deny-private-ips=true
+      - --webhook-deny-public-ips=true
+      - --log-level=warn
+    networks: [conversor]
+    mem_limit: 2g
+    pids_limit: 512
+    security_opt: ["no-new-privileges:true"]
     restart: unless-stopped
 
   api:
@@ -68,6 +93,9 @@ services:
       db: { condition: service_healthy }
       redis: { condition: service_started }
     volumes: [blobs:/data/blobs]
+    networks: [default, dados, conversor]
+    mem_limit: 2g
+    security_opt: ["no-new-privileges:true"]
     restart: unless-stopped
 
   worker:
@@ -77,15 +105,29 @@ services:
     volumes: [blobs:/data/blobs]
     depends_on:
       api: { condition: service_healthy }
+    # precisa de saída (webhooks para Drawings/Writer/Sheets e IA); OCR/Ghostscript limitados em memória/CPU/processos
+    networks: [default, dados, conversor]
+    mem_limit: 3g
+    cpus: 2
+    pids_limit: 512
+    security_opt: ["no-new-privileges:true"]
     deploy:
       replicas: 1                       # OCR é CPU-bound: escale com --scale worker=N
     restart: unless-stopped
 
   web:
     build: ./frontend
-    ports: ["127.0.0.1:${WEB_PORT:-8080}:80"]   # só local: o TLS fica no Caddy do host
+    ports: ["127.0.0.1:${WEB_PORT:-8080}:8080"]   # só local: o TLS fica no Caddy do host (nginx sem root, porta 8080)
+    security_opt: ["no-new-privileges:true"]
     depends_on: [api]
     restart: unless-stopped
+
+networks:
+  default: {}
+  dados:                                # db e redis: sem saída para a internet
+    internal: true
+  conversor:                            # api/worker ↔ gotenberg: sem saída (bloqueia SSRF pelo Chromium)
+    internal: true
 
 volumes:
   pgdata:

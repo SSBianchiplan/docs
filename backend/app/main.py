@@ -59,8 +59,11 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     await engine().dispose()
 
 
+# Swagger/OpenAPI só fora de produção (APP_ENV=dev/teste): em produção não expõe o mapa das rotas
+_DEV = get_settings().app_env.strip().lower() in ("dev", "desenvolvimento", "teste", "test")
 app = FastAPI(title="GPlanSiS|DOCS API", version="0.1.0", lifespan=lifespan,
-              docs_url="/api/docs", openapi_url="/api/openapi.json")
+              docs_url="/api/docs" if _DEV else None, redoc_url=None,
+              openapi_url="/api/openapi.json" if _DEV else None)
 app.add_middleware(CORSMiddleware, allow_origins=get_settings().cors_origins, allow_credentials=True,
                    allow_methods=["*"], allow_headers=["*"])
 app.add_exception_handler(DBAPIError, db_error_handler)
