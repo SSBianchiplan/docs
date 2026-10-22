@@ -1,0 +1,49 @@
+# Segredos — nunca versionar (só .env.example)
+.env
+.env.*
+!.env.example
+
+# Dados: documentos enviados, blobs, bancos, dumps e backups
+data/
+blobs/
+uploads/
+backups/
+*.dump
+*.sql.gz
+*.db
+*.sqlite
+*.bak
+*.bak*
+*-bak-*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Frontend
+node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# Logs e temporários
+*.log
+*.tmp
+tmp/
+
+# Chaves e certificados
+*.pem
+*.key
+*.crt
+*.p12
+
+# SO / editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

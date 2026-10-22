@@ -1,0 +1,93 @@
+name: gplansis-docs
+
+x-backend-env: &backend-env
+  DATABASE_URL: postgresql+asyncpg://edms:${POSTGRES_PASSWORD}@db:5432/edms
+  REDIS_URL: redis://redis:6379/0
+  JWT_SECRET: ${JWT_SECRET}
+  STORAGE_BACKEND: ${STORAGE_BACKEND:-fs}   # fs = volume "blobs"; s3 = defina S3_* e um serviço S3
+  STORAGE_DIR: /data/blobs
+  S3_ENDPOINT: ${S3_ENDPOINT:-minio:9000}
+  S3_ACCESS_KEY: ${S3_ACCESS_KEY:-}
+  S3_SECRET_KEY: ${S3_SECRET_KEY:-}
+  S3_BUCKET: edms
+  GOTENBERG_URL: http://gotenberg:3000
+  OCR_ENGINE: ${OCR_ENGINE:-tesseract}
+  OCR_LANGUAGES: ${OCR_LANGUAGES:-por+eng}
+  OCR_DPI: ${OCR_DPI:-300}
+  OCR_ARCHIVE_PDFA: ${OCR_ARCHIVE_PDFA:-true}
+  MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-512}
+  EMBEDDINGS_ENABLED: ${EMBEDDINGS_ENABLED:-false}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5}
+  CONFIG_SEGREDO: ${CONFIG_SEGREDO:-}            # cifra a chave da IA guardada pelo painel Configurações
+  BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL}
+  BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD}
+  BOOTSTRAP_ADMIN_NAME: ${BOOTSTRAP_ADMIN_NAME:-Administrador}
+  API_WORKERS: ${API_WORKERS:-2}
+  # integração com o GPlanSiS|Drawings (mesmo segredo no .env do Drawings: DRAWINGS_DOCS_SEGREDO)
+  INTEGRACAO_DRAWINGS_SEGREDO: ${INTEGRACAO_DRAWINGS_SEGREDO:-}
+  DRAWINGS_URL: ${DRAWINGS_URL:-https://drawings.gplansis.com}
+  DRAWINGS_WEBHOOK_URL: ${DRAWINGS_WEBHOOK_URL:-}
+  # integração com o GPlanSiS|Writer (mesmo segredo no .env do Writer: WRITER_DOCS_SEGREDO)
+  INTEGRACAO_WRITER_SEGREDO: ${INTEGRACAO_WRITER_SEGREDO:-}
+  WRITER_URL: ${WRITER_URL:-https://writer.gplansis.com}
+  WRITER_WEBHOOK_URL: ${WRITER_WEBHOOK_URL:-}
+  # integração com o GPlanSiS|Sheets (mesmo segredo no .env do Sheets: SHEETS_DOCS_SEGREDO)
+  INTEGRACAO_SHEETS_SEGREDO: ${INTEGRACAO_SHEETS_SEGREDO:-}
+  SHEETS_URL: ${SHEETS_URL:-https://sheets.gplansis.com}
+  SHEETS_WEBHOOK_URL: ${SHEETS_WEBHOOK_URL:-}
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: edms
+      POSTGRES_USER: edms
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U edms -d edms"]
+      interval: 5s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: [redisdata:/data]
+    restart: unless-stopped
+
+  gotenberg:                            # Office → PDF (LibreOffice headless)
+    image: gotenberg/gotenberg:8
+    restart: unless-stopped
+
+  api:
+    build: { context: ./backend, args: { EXTRAS: "ocr llm" } }
+    environment: *backend-env
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_started }
+    volumes: [blobs:/data/blobs]
+    restart: unless-stopped
+
+  worker:
+    build: { context: ./backend, args: { EXTRAS: "ocr llm" } }
+    command: ["arq", "app.worker.WorkerSettings"]
+    environment: *backend-env
+    volumes: [blobs:/data/blobs]
+    depends_on:
+      api: { condition: service_healthy }
+    deploy:
+      replicas: 1                       # OCR é CPU-bound: escale com --scale worker=N
+    restart: unless-stopped
+
+  web:
+    build: ./frontend
+    ports: ["127.0.0.1:${WEB_PORT:-8080}:80"]   # só local: o TLS fica no Caddy do host
+    depends_on: [api]
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  blobs:

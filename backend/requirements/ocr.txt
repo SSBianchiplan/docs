@@ -1,0 +1,7 @@
+pytesseract>=0.3.13
+opencv-python-headless>=4.10
+numpy>=1.26
+pypdfium2>=4.30
+img2pdf>=0.5
+ocrmypdf>=16.4
+pillow>=10.4

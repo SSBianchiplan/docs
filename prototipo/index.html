@@ -1,0 +1,1317 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F3F5F6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E141A" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GPS DOCS">
+<meta name="description" content="Protótipo navegável do GPlanSiS|DOCS — gestão de documentos técnicos de engenharia">
+<title>GPlanSiS|DOCS · Protótipo</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2314202B'/%3E%3Cpath d='M17 11h21l10 10v32a2 2 0 0 1-2 2H17a2 2 0 0 1-2-2V13a2 2 0 0 1 2-2z' fill='%23F3F5F6'/%3E%3Cpath d='M38 11v8a2 2 0 0 0 2 2h8z' fill='%239FB3C2'/%3E%3Cpath d='M15 42h33M30 42v13' stroke='%2314202B' stroke-width='2'/%3E%3Cpath d='M39 45.5l5.5 8h-11z' fill='%23D2412F'/%3E%3C/svg%3E">
+<style>
+/* ---------- tokens: claro ("papel vegetal") / escuro ("sala de controle de documentos") ---------- */
+:root{
+  --bg:#f3f5f6;--surface:#fff;--surface-2:#eaeef0;--line:#d6dde1;--line-strong:#b7c2c9;
+  --ink:#14202b;--ink-2:#3c4a56;--muted:#66737e;
+  --accent:#0e6a71;--accent-ink:#fff;--accent-soft:#dcefef;--delta:#d2412f;
+  --ok:#217a45;--ok-soft:#dff1e5;--warn:#a15c00;--warn-soft:#fbecd2;--bad:#b3261e;--bad-soft:#f9dedb;
+  --info:#2c5d9e;--info-soft:#dfe8f6;--sheet:#fbfcfc;--sheet-ink:#1d2a36;
+  --r-ctl:6px;--r-panel:10px;
+  --sans:"Barlow","Segoe UI Variable","Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono","SF Mono",Menlo,Consolas,monospace;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e141a;--surface:#151d25;--surface-2:#1b252f;--line:#26323d;--line-strong:#37475a;
+    --ink:#e2e8ed;--ink-2:#b9c4cd;--muted:#8593a0;
+    --accent:#40b4ba;--accent-ink:#06201f;--accent-soft:#11363a;--delta:#f0654f;
+    --ok:#5cc486;--ok-soft:#133524;--warn:#f0b04a;--warn-soft:#3a2a10;--bad:#f07a70;--bad-soft:#3c1917;
+    --info:#7fa9e6;--info-soft:#172a45;--sheet:#e9edef;--sheet-ink:#1d2a36;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e141a;--surface:#151d25;--surface-2:#1b252f;--line:#26323d;--line-strong:#37475a;
+  --ink:#e2e8ed;--ink-2:#b9c4cd;--muted:#8593a0;
+  --accent:#40b4ba;--accent-ink:#06201f;--accent-soft:#11363a;--delta:#f0654f;
+  --ok:#5cc486;--ok-soft:#133524;--warn:#f0b04a;--warn-soft:#3a2a10;--bad:#f07a70;--bad-soft:#3c1917;
+  --info:#7fa9e6;--info-soft:#172a45;--sheet:#e9edef;--sheet-ink:#1d2a36;color-scheme:dark;
+}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px);-webkit-text-size-adjust:100%}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--sans);-webkit-font-smoothing:antialiased;min-height:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.tnum{font-variant-numeric:tabular-nums}
+.code{font-family:var(--mono);font-size:.86em;letter-spacing:-.01em}
+.muted{color:var(--muted)} .ink2{color:var(--ink-2)} .small{font-size:13px} .xs{font-size:12px} .xxs{font-size:11px}
+.row{display:flex;align-items:center;gap:8px} .wrap{flex-wrap:wrap} .grow{flex:1;min-width:0} .col{display:flex;flex-direction:column;gap:8px}
+.trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+mark{background:var(--warn-soft);color:inherit;padding:0 2px;border-radius:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---------- controles ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 14px;border-radius:var(--r-ctl);border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap;touch-action:manipulation}
+.btn:hover{background:var(--surface-2)} .btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.p{background:var(--accent);color:var(--accent-ink);border-color:transparent} .btn.p:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--bad);border-color:color-mix(in oklab,var(--bad) 40%,transparent)} .btn.danger:hover{background:var(--bad-soft)}
+.btn.ghost{border-color:transparent;background:transparent} .btn.ghost:hover{background:var(--surface-2)}
+.btn.sm{min-height:34px;padding:0 10px;font-size:13px} .btn.block{width:100%}
+.icon{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.input{width:100%;min-height:42px;border-radius:var(--r-ctl);border:1px solid var(--line);background:var(--surface);padding:0 12px;font-size:15px;outline:none}
+.input:focus{border-color:var(--accent)} textarea.input{padding:10px 12px;min-height:84px;resize:vertical}
+.label{display:block;font-size:13px;font-weight:500;color:var(--ink-2);margin-bottom:4px}
+.field{margin-bottom:14px} .hint{display:block;font-size:12px;color:var(--muted);margin-top:4px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-panel)}
+.pad{padding:14px} .mb{margin-bottom:14px} .mt{margin-top:14px}
+.badge{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap;border:1px solid transparent}
+.t-neutral{background:var(--surface-2);color:var(--ink-2);border-color:var(--line)} .t-info{background:var(--info-soft);color:var(--info)}
+.t-warn{background:var(--warn-soft);color:var(--warn)} .t-ok{background:var(--ok-soft);color:var(--ok)}
+.t-bad{background:var(--bad-soft);color:var(--bad)} .t-accent{background:var(--accent-soft);color:var(--accent)}
+.skel{background:var(--surface-2);border-radius:6px;animation:pulse 1.2s infinite} @keyframes pulse{50%{opacity:.5}}
+
+/* delta de revisão */
+.delta{position:relative;display:inline-flex;align-items:flex-end;justify-content:center;flex:none}
+.delta svg{position:absolute;inset:0;width:100%;height:100%}
+.delta b{position:relative;font-family:var(--mono);font-weight:600;line-height:1}
+
+/* ---------- shell ---------- */
+.app{min-height:100%;display:flex}
+.side{display:none}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;height:56px;display:flex;align-items:center;gap:10px;padding:0 14px;background:color-mix(in oklab,var(--surface) 92%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:9px;font-weight:600;letter-spacing:-.01em}
+.brand img,.brand svg{width:30px;height:30px}
+.persona{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px 10px 3px 3px;cursor:pointer;min-height:36px}
+.avatar{width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;flex:none}
+.content{width:100%;max-width:1320px;margin:0 auto;padding:16px 14px calc(88px + env(safe-area-inset-bottom,0px))}
+.bnav{position:fixed;bottom:0;left:0;right:0;z-index:40;display:grid;grid-template-columns:repeat(5,1fr);background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.bnav a{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:58px;font-size:11px;color:var(--muted)}
+.bnav a.on{color:var(--accent)} .bnav .dot{position:absolute;top:8px;right:calc(50% - 16px);min-width:16px;height:16px;border-radius:8px;background:var(--delta);color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.h1{font-size:22px;font-weight:600;letter-spacing:-.015em;line-height:1.2;margin:0}
+.phead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:16px}
+.h2{font-size:15px;font-weight:600;margin:0 0 10px}
+.grid{display:grid;gap:12px}
+.g2{grid-template-columns:1fr 1fr}
+.metric{padding:12px 14px}
+.metric .v{font-size:28px;font-weight:600;line-height:1.1}
+.metric.alert{border-color:color-mix(in oklab,var(--delta) 55%,transparent)} .metric.alert .v{color:var(--delta)}
+.list{list-style:none;margin:0;padding:0}
+.list>li+li{border-top:1px solid var(--line)}
+.item{display:flex;align-items:center;gap:10px;padding:11px 14px;min-height:52px}
+a.item:hover,button.item:hover{background:var(--surface-2)}
+button.item{width:100%;border:0;background:none;text-align:left;cursor:pointer}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.chip{flex:none;height:34px;padding:0 13px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:13px;cursor:pointer;white-space:nowrap}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.tabs{display:flex;overflow-x:auto;border-bottom:1px solid var(--line);scrollbar-width:none}
+.tab{flex:none;display:flex;align-items:center;gap:6px;height:44px;padding:0 12px;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;background:none;color:var(--muted);font-size:13px;cursor:pointer}
+.tab.on{color:var(--ink);border-color:var(--accent);font-weight:600}
+.count{font-size:11px;background:var(--surface-2);border-radius:999px;padding:0 6px}
+.empty{text-align:center;padding:36px 18px;color:var(--muted)}
+.empty .icon{width:28px;height:28px;margin-bottom:6px}
+.empty p{margin:4px 0} .empty strong{color:var(--ink);font-weight:600}
+
+/* carimbo */
+.tb{overflow:hidden}
+.tb-top{display:grid;grid-template-columns:1fr auto;border-bottom:1px solid var(--line)}
+.tb-cells{display:grid;grid-template-columns:1fr 1fr}
+.tb-cells>div{padding:8px 12px;border-bottom:1px solid var(--line);min-width:0}
+.tb-cells>div:nth-child(odd){border-right:1px solid var(--line)}
+.tb-cells .k{font-size:11px;color:var(--muted)} .tb-cells .v{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tb-actions{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;background:color-mix(in oklab,var(--surface-2) 50%,transparent)}
+.revs{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px;scrollbar-width:thin}
+.revbtn{flex:none;display:flex;align-items:center;gap:8px;height:46px;padding:0 12px 0 8px;border-radius:var(--r-ctl);border:1px solid var(--line);background:var(--surface);cursor:pointer;text-align:left}
+.revbtn.on{border-color:var(--accent);background:var(--accent-soft)}
+
+/* prancha */
+.viewer{display:flex;flex-direction:column;overflow:hidden}
+.vbar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:6px 8px;border-bottom:1px solid var(--line);background:color-mix(in oklab,var(--surface-2) 60%,transparent)}
+.vstage{overflow:auto;background:color-mix(in oklab,var(--surface-2) 70%,var(--bg));padding:12px;touch-action:pan-x pan-y}
+.sheetwrap{position:relative;margin:0 auto;box-shadow:0 1px 3px rgba(0,0,0,.18);background:var(--sheet);transform-origin:top left}
+.sheetwrap svg.sheet{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0}
+.overlay.drawing{cursor:crosshair;touch-action:none}
+.cm{position:absolute;border:2px solid;border-radius:2px;background:transparent;cursor:pointer;padding:0}
+.cm.done{border-style:dashed;opacity:.7}
+.cm.act{box-shadow:0 0 0 4px color-mix(in oklab,var(--warn) 40%,transparent);background:color-mix(in oklab,var(--warn) 15%,transparent)}
+.cm i{position:absolute;top:-10px;left:-10px;width:20px;height:20px;border-radius:50%;color:#fff;font:600 11px/20px var(--sans);font-style:normal;text-align:center}
+.drag{position:absolute;border:2px dashed var(--delta);background:color-mix(in oklab,var(--delta) 12%,transparent);pointer-events:none}
+
+/* folhas e toasts */
+.scrim{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.42);animation:fade .15s}
+.sheetpane{position:fixed;z-index:61;left:0;right:0;bottom:0;max-height:88%;display:flex;flex-direction:column;background:var(--surface);border-radius:14px 14px 0 0;border:1px solid var(--line);box-shadow:0 -8px 30px rgba(0,0,0,.25);animation:up .2s ease-out;padding-bottom:env(safe-area-inset-bottom,0px)}
+.sheetpane header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--line)}
+.sheetpane header::before{content:"";position:absolute;top:6px;left:50%;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:var(--line-strong)}
+.sheetpane .body{overflow-y:auto;padding:14px 16px}
+.sheetpane footer{display:flex;gap:8px;justify-content:flex-end;padding:10px 16px;border-top:1px solid var(--line)}
+@keyframes up{from{transform:translateY(40px);opacity:0}} @keyframes fade{from{opacity:0}}
+.toasts{position:fixed;z-index:80;left:12px;right:12px;bottom:calc(70px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{pointer-events:none;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--ok);border-radius:var(--r-panel);box-shadow:0 8px 24px rgba(0,0,0,.18);padding:11px 14px;font-size:14px;animation:up .2s}
+.toast.bad{border-left-color:var(--bad)} .toast .inv{display:block;font-family:var(--mono);font-size:11px;color:var(--bad);margin-bottom:2px}
+
+/* pipeline de OCR */
+.steps{list-style:none;margin:0;padding:0}
+.steps li{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:14px;color:var(--muted)}
+.steps li .st{width:22px;height:22px;border-radius:50%;border:2px solid var(--line-strong);flex:none;display:flex;align-items:center;justify-content:center}
+.steps li.run{color:var(--ink)} .steps li.run .st{border-color:var(--accent);border-top-color:transparent;animation:spin .8s linear infinite}
+.steps li.ok{color:var(--ink)} .steps li.ok .st{border-color:var(--ok);background:var(--ok)} .steps li.ok .st::after{content:"";width:8px;height:4px;border:2px solid #fff;border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.bar{height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden} .bar>div{height:100%;background:var(--accent)}
+
+table.t{width:100%;border-collapse:collapse}
+.t th{text-align:left;font-size:12px;font-weight:600;color:var(--muted);padding:8px 12px;border-bottom:1px solid var(--line);white-space:nowrap;background:color-mix(in oklab,var(--surface-2) 55%,transparent)}
+.t td{padding:9px 12px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:middle}
+.t tr.click{cursor:pointer} .t tr.click:hover td{background:var(--surface-2)}
+.scrollx{overflow-x:auto}
+.desk{display:none}
+.timeline{list-style:none;margin:0;padding:0 0 0 14px;border-left:1px solid var(--line)}
+.timeline li{position:relative;padding:0 0 14px 12px}
+.timeline li::before{content:"";position:absolute;left:-19px;top:5px;width:10px;height:10px;border-radius:50%;background:var(--c,var(--warn))}
+pre.ocr{font-family:var(--mono);font-size:12px;white-space:pre-wrap;background:var(--surface-2);border-radius:6px;padding:10px;max-height:340px;overflow:auto;margin:4px 0 12px}
+
+/* ---------- desktop ---------- */
+@media (min-width:1024px){
+  .side{display:flex;flex-direction:column;width:236px;flex:none;border-right:1px solid var(--line);background:var(--surface);position:sticky;top:0;align-self:flex-start;height:100dvh}
+  .side nav{flex:1;padding:8px;overflow-y:auto}
+  .side nav a{display:flex;align-items:center;gap:12px;height:38px;padding:0 12px;border-radius:6px;color:var(--ink-2);font-size:14px}
+  .side nav a:hover{background:var(--surface-2)} .side nav a.on{background:var(--accent-soft);color:var(--accent);font-weight:500}
+  .side nav a .n{margin-left:auto;min-width:20px;height:20px;border-radius:10px;background:var(--delta);color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;padding:0 6px}
+  .side .sb{height:56px;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--line)}
+  .bnav,.mob{display:none!important}
+  .desk{display:block} .desk.btn{display:inline-flex} span.desk{display:inline-flex}
+  .content{padding:22px 24px 40px}
+  .toasts{left:auto;right:20px;bottom:20px;width:400px}
+  .sheetpane{left:auto;top:0;bottom:0;width:460px;max-height:none;border-radius:0;animation:none}
+  .sheetpane header::before{display:none}
+  .g4{grid-template-columns:repeat(4,1fr)} .g3{grid-template-columns:2fr 1fr}
+  .detail{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:14px;align-items:start}
+  .detail aside{position:sticky;top:70px;max-height:calc(100dvh - 90px);display:flex;flex-direction:column}
+  .tb-cells{grid-template-columns:repeat(6,1fr)} .tb-cells>div{border-bottom:0;border-right:1px solid var(--line)} .tb-cells>div:last-child{border-right:0}
+}
+@media (min-width:640px) and (max-width:1023px){ .g4{grid-template-columns:repeat(4,1fr)} }
+@media print{.top,.bnav,.side,.tb-actions,.noprint{display:none!important} .content{padding:0}}
+</style>
+</head>
+<body>
+<div id="app" class="app" aria-live="off"></div>
+<div id="toasts" class="toasts" aria-live="polite"></div>
+<div id="layer"></div>
+<script>
+"use strict";
+/* =====================================================================
+   GPlanSiS|DOCS — protótipo standalone (sem rede, sem dependências)
+   As regras INV-* reproduzem as invariantes do schema PostgreSQL do sistema.
+   ===================================================================== */
+const KEY = "gps-docs-proto-v1";
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const raw = (s) => ({ __raw: String(s) });
+function h(strings, ...vals) {
+  let out = "";
+  strings.forEach((s, i) => {
+    out += s;
+    if (i < vals.length) {
+      const v = vals[i];
+      const one = (x) => (x == null || x === false ? "" : x.__raw !== undefined ? x.__raw : esc(x));
+      out += Array.isArray(v) ? v.map(one).join("") : one(v);
+    }
+  });
+  return raw(out);
+}
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+const DAY = 86400000;
+const nowIso = () => new Date().toISOString();
+const ago = (d, hrs = 0) => new Date(Date.now() - d * DAY - hrs * 3600000).toISOString();
+const fmtD = (s) => (s ? new Date(s).toLocaleDateString("pt-BR") : "—");
+const fmtDT = (s) => (s ? new Date(s).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—");
+function rel(s) {
+  const d = (new Date(s) - Date.now()) / 1000, a = Math.abs(d), f = new Intl.RelativeTimeFormat("pt-BR", { numeric: "auto" });
+  if (a < 3600) return f.format(Math.round(d / 60), "minute");
+  if (a < 86400) return f.format(Math.round(d / 3600), "hour");
+  return f.format(Math.round(d / 86400), "day");
+}
+const norm = (s) => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+/* ---------- SHA-256 (síncrono, para a cadeia de auditoria e manifestos de GRD) ---------- */
+const sha256 = (() => {
+  const K = [], H = [];
+  let n = 2, c = 0;
+  const isP = (x) => { for (let f = 2; f * f <= x; f++) if (x % f === 0) return false; return true; };
+  while (c < 64) { if (isP(n)) { if (c < 8) H[c] = (Math.pow(n, 1 / 2) * 2 ** 32) | 0; K[c++] = (Math.pow(n, 1 / 3) * 2 ** 32) | 0; } n++; }
+  return (str) => {
+    const b = new TextEncoder().encode(str), l = b.length, words = new Uint32Array(((l + 9 + 63) >> 6) << 4);
+    for (let i = 0; i < l; i++) words[i >> 2] |= b[i] << (24 - (i % 4) * 8);
+    words[l >> 2] |= 0x80 << (24 - (l % 4) * 8);
+    words[words.length - 1] = l * 8; words[words.length - 2] = Math.floor((l * 8) / 2 ** 32);
+    const hh = H.slice(), w = new Uint32Array(64);
+    for (let j = 0; j < words.length; j += 16) {
+      let [a, bb, cc, d, e, f, g, k] = hh;
+      for (let i = 0; i < 64; i++) {
+        if (i < 16) w[i] = words[j + i];
+        else {
+          const x = w[i - 15], y = w[i - 2];
+          w[i] = (((x >>> 7) | (x << 25)) ^ ((x >>> 18) | (x << 14)) ^ (x >>> 3)) + w[i - 7] + (((y >>> 17) | (y << 15)) ^ ((y >>> 19) | (y << 13)) ^ (y >>> 10)) + w[i - 16];
+        }
+        const t1 = k + (((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7))) + ((e & f) ^ (~e & g)) + K[i] + w[i];
+        const t2 = (((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10))) + ((a & bb) ^ (a & cc) ^ (bb & cc));
+        k = g; g = f; f = e; e = (d + t1) | 0; d = cc; cc = bb; bb = a; a = (t1 + t2) | 0;
+      }
+      [a, bb, cc, d, e, f, g, k].forEach((v, i) => (hh[i] = (hh[i] + v) | 0));
+    }
+    return hh.map((v) => (v >>> 0).toString(16).padStart(8, "0")).join("");
+  };
+})();
+
+/* ---------- catálogos ---------- */
+const USERS = [
+  { id: "u-ana", name: "Ana Souza", role: "AUTOR", color: "#0e6a71", company: "Projetista" },
+  { id: "u-rui", name: "Rui Moraes", role: "REVISOR", color: "#8a5a00", company: "Projetista" },
+  { id: "u-carla", name: "Carla Nunes", role: "CONTROLADOR", color: "#2c5d9e", company: "Owner" },
+  { id: "u-adm", name: "Administrador", role: "ADMIN", color: "#5e6b76", company: "GPlanSiS" },
+];
+const ROLE = { ADMIN: "Administrador", CONTROLADOR: "Controle de documentos", AUTOR: "Autor", REVISOR: "Revisor", LEITOR: "Leitor" };
+const DISC = { GER: "Geral", CIV: "Civil", EST: "Estruturas", MEC: "Mecânica", TUB: "Tubulação", ELE: "Elétrica", INS: "Instrumentação", AUT: "Automação", PRO: "Processo", ARQ: "Arquitetura", HVAC: "Ventilação", SEG: "Segurança", MA: "Meio ambiente", QUA: "Qualidade" };
+const TYPE = { DE: "Desenho", MD: "Memorial descritivo", MC: "Memória de cálculo", ET: "Especificação técnica", FD: "Folha de dados", LM: "Lista de materiais", LI: "Lista de instrumentos", DF: "Diagrama / P&ID", RT: "Relatório técnico", PR: "Procedimento", DB: "Databook", CT: "Certificado" };
+const DRAWING = new Set(["DE", "DF"]);
+const STATUS = {
+  EM_ELABORACAO: ["Em elaboração", "neutral"], EM_VERIFICACAO: ["Em verificação", "warn"], APROVADA_INTERNA: ["Aprovada interna", "info"],
+  EMITIDA: ["Emitida", "accent"], APROVADA: ["Aprovada (A)", "ok"], APROVADA_COM_COMENTARIOS: ["Aprov. c/ coment. (B)", "warn"],
+  REPROVADA: ["Reprovada (C)", "bad"], SUPERADA: ["Superada", "neutral"], CANCELADA: ["Cancelada", "neutral"],
+};
+const PURPOSE = { PI: "Para informação", PA: "Para aprovação", PC: "Para construção", CE: "Conforme construído", CA: "Cancelamento" };
+const CAT = { GERAL: ["Geral", "var(--accent)", "neutral"], TECNICO: ["Técnico", "var(--warn)", "warn"], EDITORIAL: ["Editorial", "var(--info)", "info"], OBRIGATORIO: ["Obrigatório", "var(--delta)", "bad"] };
+// INV-REV-005 — mesma tabela revision_transition do banco
+const TRANSITIONS = {
+  EM_ELABORACAO: ["EM_VERIFICACAO", "APROVADA_INTERNA", "CANCELADA"], EM_VERIFICACAO: ["EM_ELABORACAO", "APROVADA_INTERNA", "CANCELADA"],
+  APROVADA_INTERNA: ["EMITIDA", "CANCELADA"], EMITIDA: ["APROVADA", "APROVADA_COM_COMENTARIOS", "REPROVADA", "SUPERADA"],
+  APROVADA: ["SUPERADA"], APROVADA_COM_COMENTARIOS: ["SUPERADA"], REPROVADA: ["SUPERADA"], SUPERADA: [], CANCELADA: [],
+};
+const OPEN = ["EM_ELABORACAO", "EM_VERIFICACAO", "APROVADA_INTERNA"];
+const PROJECT = { id: "p1", code: "UTE01", name: "UTE Biomassa 30 MW", client: "Energia Exemplo S.A.", mask: "{PROJ}-{DISC}-{TIPO}-{SEQ:4}", requireWorkflow: true };
+const CODE_RX = /^[A-Z0-9]{2,12}-[A-Z0-9]{1,4}-[A-Z0-9]{2,4}-[0-9]{4}$/;
+
+/* ---------- texto de OCR sintético (alimenta a busca) ---------- */
+function ocrText(d, label) {
+  const base = {
+    DE: `TÍTULO: ${d.title.toUpperCase()}\n${d.code}  REV. ${label}  ESCALA 1:50  FOLHA 1 DE 2  A1\nNOTA 1: TODAS AS COTAS EM MILÍMETROS.\nNOTA 2: FLANGES CLASSE 300 CONFORME ASME B16.5.\nNOTA 3: VER P&ID DE REFERÊNCIA PARA TAGS DE VÁLVULAS.`,
+    DF: `TÍTULO: ${d.title.toUpperCase()}\n${d.code} REV. ${label}\nVÁLVULA DE SEGURANÇA PSV-1101 AJUSTE 42 BARG\nBOMBA DE ALIMENTAÇÃO B-101A/B\nTRANSMISSOR DE PRESSÃO PT-1101 — INTERTRAVAMENTO I-12`,
+    MC: `MEMÓRIA DE CÁLCULO — ${d.title}\n1. OBJETIVO\n2. PREMISSAS: carga de vento conforme NBR 6123; combinação últimas.\n3. RESULTADOS: fator de segurança 1,8 ≥ 1,5 — atende.`,
+    ET: `ESPECIFICAÇÃO TÉCNICA — ${d.title}\nEscopo de fornecimento, normas aplicáveis (ASME, API 610, NR-12), inspeção e testes, pintura e embalagem.`,
+    FD: `FOLHA DE DADOS — ${d.title}\nServiço: água de alimentação. Vazão 120 m³/h. Pressão de descarga 45 barg. Material da carcaça: aço carbono A216 WCB. Selo mecânico plano 11.`,
+    LM: `LISTA DE MATERIAIS — ${d.title}\nItem 1 tubo aço carbono A106 Gr.B 6" SCH40; item 2 flange WN classe 300; item 3 junta espiralada; item 4 válvula gaveta 6" classe 300.`,
+    LI: `LISTA DE INSTRUMENTOS — ${d.title}\nPT-1101 transmissor de pressão 0-60 barg; TT-1102 temperatura; FT-1103 vazão; LT-1104 nível do tubulão.`,
+    RT: `RELATÓRIO — ${d.title}\nResultados dentro dos limites; não conformidades registradas: 2; ações corretivas em andamento.`,
+    PR: `PROCEDIMENTO — ${d.title}\nResponsabilidades, fluxo de aprovação, registros e controle de revisões.`,
+    MD: `MEMORIAL DESCRITIVO — ${d.title}\nDescrição do sistema, condições de operação, filosofia de controle e intertravamentos.`,
+    DB: `DATABOOK — ${d.title}\nCertificados de material, relatórios de teste de performance, manual de operação e manutenção.`,
+    CT: `CERTIFICADO — ${d.title}\nIncerteza expandida declarada; rastreabilidade RBC/INMETRO; validade 12 meses.`,
+  };
+  return base[d.type] || d.title;
+}
+
+/* ---------- semente determinística ---------- */
+function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 2 ** 32); }
+const SEED_DOCS = [
+  ["MEC", "DE", "Arranjo geral da casa de bombas"], ["MEC", "DE", "Arranjo geral da caldeira de biomassa"], ["MEC", "FD", "Folha de dados — bomba centrífuga B-101A/B"],
+  ["MEC", "ET", "Especificação técnica de bombas centrífugas"], ["TUB", "DF", "P&ID — sistema de água de alimentação"], ["TUB", "DE", "Isométrico da linha de vapor 6\"-VS-1203"],
+  ["TUB", "LM", "Lista de materiais de tubulação — área 100"], ["ELE", "DF", "Diagrama unifilar geral 13,8 kV"], ["ELE", "DE", "Arranjo de eletrocalhas da casa de força"],
+  ["ELE", "MC", "Memória de cálculo de curto-circuito"], ["ELE", "LM", "Lista de cabos de potência"], ["INS", "LI", "Lista de instrumentos da caldeira"],
+  ["INS", "FD", "Folha de dados — transmissor de pressão PT-1101"], ["INS", "DE", "Típico de montagem de instrumentos"], ["AUT", "DF", "Arquitetura de rede de automação"],
+  ["AUT", "ET", "Especificação funcional do SDCD"], ["AUT", "RT", "Relatório de teste de aceitação em fábrica"], ["CIV", "DE", "Planta de fundações da casa de bombas"],
+  ["CIV", "MC", "Memória de cálculo da base da turbina"], ["EST", "DE", "Estrutura metálica do pipe rack PR-01"], ["EST", "MC", "Memória de cálculo do pipe rack PR-01"],
+  ["PRO", "DF", "Fluxograma de processo do ciclo térmico"], ["PRO", "MD", "Memorial descritivo de processo"], ["SEG", "DE", "Planta de rotas de fuga e combate a incêndio"],
+  ["SEG", "PR", "Procedimento de permissão de trabalho"], ["HVAC", "DE", "Ventilação da sala elétrica"], ["QUA", "PR", "Procedimento de controle de documentos"],
+  ["MA", "RT", "Relatório de monitoramento de emissões"], ["ARQ", "DE", "Planta baixa do prédio administrativo"], ["GER", "CT", "Certificado de calibração da balança rodoviária"],
+  ["MEC", "DB", "Databook do ventilador de tiragem induzida"], ["TUB", "ET", "Especificação de pintura de tubulações"],
+];
+const SCEN = ["approved", "issued", "verif1", "draft", "approvedInt", "rejectedB", "verif2", "approvedB", "approved", "issued", "draftNoFile", "approved"];
+
+function mkFile(d, label, name) {
+  const pages = DRAWING.has(d.type) ? 2 : 3 + (d.code.charCodeAt(d.code.length - 1) % 5);
+  const scanned = d.code.charCodeAt(d.code.length - 1) % 3 === 0;
+  return { id: uid(), name: name || `${d.code}_R${label}.pdf`, role: "PDF", size: 180000 + ((d.title.length * 91337) % 4200000), pages,
+    ocr: "CONCLUIDO", engine: scanned ? "tesseract" : "texto-nativo", conf: scanned ? 78 + (d.title.length % 17) : null,
+    text: ocrText(d, label), sha: sha256(d.code + label + (name || "")) };
+}
+function mkRev(d, label, status, created, extra = {}) {
+  return { id: uid(), label, status, purpose: null, current: true, createdAt: created, createdBy: "u-ana", issuedAt: null,
+    returnCode: null, returnedAt: null, files: [mkFile(d, label)], comments: [], workflow: null, ...extra };
+}
+function wfDone(created) {
+  return { id: uid(), status: "CONCLUIDO", startedAt: created, steps: [
+    { name: "Verificação técnica", role: "REVISOR", assignee: "u-rui", status: "APROVADA", due: created, decidedAt: created, note: null },
+    { name: "Aprovação do controle de documentos", role: "CONTROLADOR", assignee: "u-carla", status: "APROVADA", due: created, decidedAt: created, note: null }] };
+}
+function seed() {
+  const r = rng(20260927), docs = [], seq = {};
+  SEED_DOCS.forEach(([disc, type, title], i) => {
+    const k = disc + type; seq[k] = (seq[k] || 0) + 1;
+    const d = { id: "d" + (i + 1), code: `${PROJECT.code}-${disc}-${type}-${String(seq[k]).padStart(4, "0")}`, title, disc, type,
+      area: ["U100", "U200", "U300", "ADM"][i % 4], originator: "Projetista Alfa", conf: i % 7 === 3 ? "CONFIDENCIAL" : "INTERNO",
+      tags: [], checkout: null, createdAt: ago(80 - i), revs: [] };
+    const sc = SCEN[i % SCEN.length], t0 = 70 - Math.floor(r() * 50);
+    if (sc === "approved") {
+      const a = mkRev(d, "A", "SUPERADA", ago(t0), { current: false, purpose: "PA", issuedAt: ago(t0 - 3), returnCode: "B", returnedAt: ago(t0 - 8), workflow: wfDone(ago(t0 - 1)) });
+      const z = mkRev(d, "0", "APROVADA", ago(t0 - 12), { purpose: "PC", issuedAt: ago(t0 - 14 + Math.floor(r() * 8)), returnCode: "A", returnedAt: ago(t0 - 18), workflow: wfDone(ago(t0 - 13)) });
+      d.revs = [a, z];
+    } else if (sc === "issued") {
+      d.revs = [mkRev(d, "A", "EMITIDA", ago(t0), { purpose: "PA", issuedAt: ago(Math.floor(r() * 20) + 2), workflow: wfDone(ago(t0 - 1)) })];
+    } else if (sc === "verif1" || sc === "verif2") {
+      const rev = mkRev(d, "A", "EM_VERIFICACAO", ago(6));
+      rev.workflow = { id: uid(), status: "ATIVO", startedAt: ago(4), steps: [
+        { name: "Verificação técnica", role: "REVISOR", assignee: "u-rui", status: sc === "verif2" ? "APROVADA" : "PENDENTE", due: sc === "verif1" ? ago(-1) : ago(1), decidedAt: sc === "verif2" ? ago(1) : null, note: null },
+        { name: "Aprovação do controle de documentos", role: "CONTROLADOR", assignee: "u-carla", status: sc === "verif2" ? "PENDENTE" : "AGUARDANDO", due: sc === "verif2" ? ago(-0.5) : null, decidedAt: null, note: null }] };
+      if (i % 2) rev.workflow.steps[0].due = ago(1, 5); // uma vencida para o painel
+      d.revs = [rev];
+    } else if (sc === "draft") {
+      d.revs = [mkRev(d, "A", "EM_ELABORACAO", ago(3))];
+    } else if (sc === "draftNoFile") {
+      d.revs = [mkRev(d, "A", "EM_ELABORACAO", ago(1), { files: [] })];
+    } else if (sc === "approvedInt") {
+      d.revs = [mkRev(d, "A", "APROVADA_INTERNA", ago(9), { workflow: wfDone(ago(7)) })];
+    } else if (sc === "rejectedB") {
+      const a = mkRev(d, "A", "SUPERADA", ago(30), { current: false, purpose: "PA", issuedAt: ago(26), returnCode: "C", returnedAt: ago(20), workflow: wfDone(ago(28)) });
+      a.comments = [
+        { id: uid(), page: 1, x: .18, y: .22, w: .22, h: .14, cat: "OBRIGATORIO", body: "Alterar flanges do bocal N3 para classe 300.", status: "ABERTO", author: "u-carla", at: ago(21), resolution: null },
+        { id: uid(), page: 1, x: .55, y: .35, w: .18, h: .12, cat: "TECNICO", body: "Indicar cota de elevação da linha de sucção.", status: "ABERTO", author: "u-rui", at: ago(21), resolution: null },
+        { id: uid(), page: null, x: null, y: null, w: null, h: null, cat: "EDITORIAL", body: "Corrigir grafia no título: 'caldeira'.", status: "RESOLVIDO", author: "u-carla", at: ago(21), resolution: "Corrigido na rev. B.", resolvedBy: "u-ana" }];
+      const b = mkRev(d, "B", "EM_ELABORACAO", ago(4));
+      b.files[0].text = b.files[0].text.replace("CLASSE 300", "CLASSE 300 (REVISADO: BOCAL N3 CLASSE 300)");
+      d.revs = [a, b];
+    } else if (sc === "approvedB") {
+      d.revs = [mkRev(d, "A", "APROVADA_COM_COMENTARIOS", ago(t0), { purpose: "PA", issuedAt: ago(t0 - 2), returnCode: "B", returnedAt: ago(t0 - 9), workflow: wfDone(ago(t0 - 1)) })];
+      d.revs[0].comments = [{ id: uid(), page: 1, x: .62, y: .6, w: .2, h: .1, cat: "TECNICO", body: "Incluir tabela de conexões no desenho.", status: "ABERTO", author: "u-carla", at: ago(t0 - 9), resolution: null }];
+    }
+    docs.push(d);
+  });
+  const grds = [];
+  const approvedRevs = docs.flatMap((d) => d.revs.filter((v) => v.status === "APROVADA").map((v) => ({ d, v })));
+  const issuedRevs = docs.flatMap((d) => d.revs.filter((v) => v.status === "EMITIDA").map((v) => ({ d, v })));
+  const mkG = (num, items, status, purpose, issuedAt) => ({ id: uid(), number: num, recipient: PROJECT.client, email: "documentos@exemplo.com", purpose, status,
+    createdAt: issuedAt, issuedAt, issuedBy: "u-carla", receivedAt: status === "RECEBIDA" ? ago(2) : null, receivedBy: status === "RECEBIDA" ? "Marcos (protocolo)" : null,
+    items: items.map((x) => ({ docId: x.d.id, revId: x.v.id })), manifest: sha256(items.map((x) => x.d.code + "|" + x.v.label).join("\n")), notes: "" });
+  grds.push(mkG(1, approvedRevs, "RECEBIDA", "PC", ago(20)));
+  grds.push(mkG(2, issuedRevs, "EMITIDA", "PA", ago(3)));
+  const state = { v: 1, me: null, theme: "system", docs, grds, seq, grdSeq: 2, audit: [], sugg: [] };
+  // proposta de carimbo pendente (a IA propõe, o humano decide)
+  const dd = docs[1];
+  state.sugg.push({ id: uid(), kind: "METADADOS_CARIMBO", target: { type: "doc", docId: dd.id }, conf: .78, engine: "carimbo-regex-v1", status: "PROPOSTA", at: ago(0, 3),
+    payload: { title: "Arranjo geral — caldeira de biomassa 30 MW", escala: "1:50", folha: "1/2", formato: "A1" } });
+  S = state;
+  const sys = { id: "sistema" };
+  docs.forEach((d) => auditAs(sys, "document", d.code, "INSERT", { title: d.title, revisions: d.revs.map((v) => v.label + ":" + v.status).join(",") }, d.createdAt));
+  grds.forEach((g) => auditAs(sys, "grd", "GRD-" + g.number, "EMITIR", { itens: g.items.length, manifesto: g.manifest.slice(0, 16) }, g.issuedAt));
+  return state;
+}
+
+/* ---------- estado ---------- */
+let S = null;
+function load() { try { const s = JSON.parse(localStorage.getItem(KEY) || "null"); return s && s.v === 1 ? s : null; } catch { return null; } }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch { /* armazenamento indisponível: segue em memória */ } }
+const me = () => USERS.find((u) => u.id === S.me);
+const user = (id) => USERS.find((u) => u.id === id) || { name: id, color: "#888", role: "" };
+const canWrite = (u = me()) => ["AUTOR", "CONTROLADOR", "ADMIN"].includes(u.role);
+const canControl = (u = me()) => ["CONTROLADOR", "ADMIN"].includes(u.role);
+const findDoc = (id) => S.docs.find((d) => d.id === id);
+const curRev = (d) => d.revs.find((v) => v.current) || d.revs[d.revs.length - 1];
+const findRev = (revId) => { for (const d of S.docs) { const v = d.revs.find((x) => x.id === revId); if (v) return { d, v }; } return null; };
+const prevRev = (d, v) => { const i = d.revs.indexOf(v); return i > 0 ? d.revs[i - 1] : null; };
+
+/* ---------- auditoria append-only com cadeia SHA-256 (INV-AUD-001) ---------- */
+function auditAs(actor, entity, id, action, data, at) {
+  const prev = S.audit.length ? S.audit[S.audit.length - 1].hash : "0".repeat(64);
+  const e = { n: S.audit.length + 1, at: at || nowIso(), actor: actor.id, entity, id, action, data: JSON.stringify(data || {}), prev };
+  e.hash = sha256([e.prev, e.at, e.actor, e.entity, e.id, e.action, e.data].join("|"));
+  S.audit.push(e);
+}
+const audit = (entity, id, action, data) => auditAs(me(), entity, id, action, data);
+function verifyChain() {
+  let prev = "0".repeat(64);
+  for (const e of S.audit) {
+    const h2 = sha256([e.prev, e.at, e.actor, e.entity, e.id, e.action, e.data].join("|"));
+    if (e.prev !== prev) return { ok: false, n: e.n, why: "prev_hash não encadeia" };
+    if (h2 !== e.hash) return { ok: false, n: e.n, why: "hash não confere com o conteúdo" };
+    prev = e.hash;
+  }
+  return { ok: true, n: S.audit.length };
+}
+
+/* ---------- regras (espelho das invariantes do banco) ---------- */
+class Inv extends Error { constructor(code, msg) { super(msg); this.code = code; } }
+const need = (cond, code, msg) => { if (!cond) throw new Inv(code, msg); };
+function nextLabel(cur) {
+  if (!cur) return "A";
+  if (/^\d+$/.test(cur)) return String(+cur + 1);
+  if (cur === "Z") return "AA";
+  if (cur.length === 2) return cur[1] !== "Z" ? cur[0] + String.fromCharCode(cur.charCodeAt(1) + 1) : String.fromCharCode(cur.charCodeAt(0) + 1) + "A";
+  return String.fromCharCode(cur.charCodeAt(0) + 1);
+}
+function setStatus(d, v, to) {
+  need(TRANSITIONS[v.status].includes(to), "INV-REV-005", `transição ${v.status} → ${to} não permitida`);
+  if (to === "APROVADA_INTERNA") {
+    need(!PROJECT.requireWorkflow || (v.workflow && v.workflow.status === "CONCLUIDO"), "INV-REV-006", "aprovação interna exige workflow concluído");
+    const p = prevRev(d, v);
+    need(!p || !p.comments.some((c) => c.cat === "OBRIGATORIO" && c.status === "ABERTO"), "INV-REV-007", "há comentários obrigatórios abertos na revisão anterior");
+  }
+  if (to === "EMITIDA") need(v.files.some((f) => f.role === "PDF"), "INV-REV-004", `revisão ${v.label} não pode ser emitida sem arquivo PDF`);
+  const from = v.status; v.status = to;
+  audit("revision", `${d.code} rev.${v.label}`, "UPDATE", { status: [from, to] });
+}
+const Ops = {
+  createDoc(f) {
+    need(canWrite(), "ACESSO", "seu perfil não cria documentos");
+    need(f.title.trim().length >= 3, "CHECK", "título precisa de ao menos 3 caracteres");
+    let code = f.code.trim().toUpperCase();
+    if (!code) { const k = f.disc + f.type; S.seq[k] = (S.seq[k] || 0) + 1; code = `${PROJECT.code}-${f.disc}-${f.type}-${String(S.seq[k]).padStart(4, "0")}`; }
+    need(CODE_RX.test(code), "INV-DOC-002", `código ${code} não obedece à codificação ${PROJECT.mask}`);
+    need(!S.docs.some((d) => d.code === code), "INV-DOC-001", "já existe documento com este código no projeto");
+    const d = { id: uid(), code, title: f.title.trim(), disc: f.disc, type: f.type, area: f.area || null, originator: f.originator || null, conf: f.conf, tags: [], checkout: null, createdAt: nowIso(), revs: [] };
+    d.revs.push({ id: uid(), label: "A", status: "EM_ELABORACAO", purpose: null, current: true, createdAt: nowIso(), createdBy: me().id, issuedAt: null, returnCode: null, returnedAt: null, files: [], comments: [], workflow: null });
+    S.docs.unshift(d);
+    audit("document", code, "INSERT", { title: d.title });
+    return d;
+  },
+  lockCheck(d) { need(!d.checkout || d.checkout.user === me().id, "423", `documento em check-out por ${d.checkout && user(d.checkout.user).name}`); },
+  checkout(d) {
+    need(canWrite(), "ACESSO", "seu perfil não faz check-out");
+    need(!d.checkout, "INV-CHK-001", "documento já está em check-out");
+    d.checkout = { user: me().id, at: nowIso() }; audit("document_checkout", d.code, "INSERT", {});
+  },
+  checkin(d) {
+    need(d.checkout && (d.checkout.user === me().id || canControl()), "409", "nenhum check-out seu ativo para este documento");
+    d.checkout = null; audit("document_checkout", d.code, "UPDATE", { checked_in: true });
+  },
+  newRevision(d) {
+    need(canWrite(), "ACESSO", "seu perfil não cria revisões"); Ops.lockCheck(d);
+    need(!d.revs.some((v) => OPEN.includes(v.status)), "INV-REV-009", "já existe revisão em andamento para este documento");
+    const c = curRev(d); c.current = false;
+    if (["EMITIDA", "APROVADA", "APROVADA_COM_COMENTARIOS", "REPROVADA"].includes(c.status)) setStatus(d, c, "SUPERADA");
+    const v = { id: uid(), label: nextLabel(c.label), status: "EM_ELABORACAO", purpose: null, current: true, createdAt: nowIso(), createdBy: me().id, issuedAt: null, returnCode: null, returnedAt: null, files: [], comments: [], workflow: null };
+    d.revs.push(v); audit("revision", `${d.code} rev.${v.label}`, "INSERT", {});
+    return v;
+  },
+  addFile(d, v, file) {
+    need(v.status === "EM_ELABORACAO", "INV-REV-003", `revisão em ${v.status} tem arquivos congelados`);
+    v.files.push(file); audit("revision_file", `${d.code} rev.${v.label}`, "INSERT", { arquivo: file.name, sha256: file.sha.slice(0, 16) });
+  },
+  startWorkflow(d, v, rev, ctl) {
+    need(canWrite(), "ACESSO", "seu perfil não envia para verificação"); Ops.lockCheck(d);
+    need(!v.workflow || v.workflow.status !== "ATIVO", "UNIQUE", "já existe workflow ativo para esta revisão");
+    need(v.files.length > 0, "REGRA", "anexe ao menos um arquivo antes de enviar para verificação");
+    v.workflow = { id: uid(), status: "ATIVO", startedAt: nowIso(), steps: [
+      { name: "Verificação técnica", role: "REVISOR", assignee: rev, status: "PENDENTE", due: new Date(Date.now() + 2 * DAY).toISOString(), decidedAt: null, note: null },
+      { name: "Aprovação do controle de documentos", role: "CONTROLADOR", assignee: ctl, status: "AGUARDANDO", due: null, decidedAt: null, note: null }] };
+    setStatus(d, v, "EM_VERIFICACAO");
+    audit("workflow_instance", `${d.code} rev.${v.label}`, "INSERT", { revisor: user(rev).name, controle: user(ctl).name });
+  },
+  decide(d, v, i, decision, note) {
+    const st = v.workflow.steps[i];
+    need(st.status === "PENDENTE", "INV-WF-004", "tarefa já decidida é imutável");
+    need(st.assignee === me().id, "INV-WF-002", "só o responsável pode decidir a tarefa");
+    if (decision === "APROVADA") need(v.createdBy !== me().id, "INV-WF-003", "autor da revisão não pode aprová-la");
+    if (decision === "REPROVADA") need((note || "").trim().length >= 5, "INV-WF-001", "reprovação exige justificativa (mín. 5 caracteres)");
+    if (decision === "APROVADA" && !v.workflow.steps[i + 1]) {
+      // pré-valida o que o constraint trigger checaria ao virar APROVADA_INTERNA — nada muda se falhar
+      const p = prevRev(d, v);
+      need(!p || !p.comments.some((c) => c.cat === "OBRIGATORIO" && c.status === "ABERTO"), "INV-REV-007", "há comentários obrigatórios abertos na revisão anterior");
+    }
+    st.status = decision; st.decidedAt = nowIso(); st.note = note || null;
+    audit("workflow_task", `${d.code} rev.${v.label}`, "UPDATE", { etapa: st.name, decisao: decision });
+    if (decision === "REPROVADA") { v.workflow.status = "REPROVADO"; setStatus(d, v, "EM_ELABORACAO"); return "reprovada"; }
+    const nx = v.workflow.steps[i + 1];
+    if (nx) { nx.status = "PENDENTE"; nx.due = new Date(Date.now() + DAY).toISOString(); return "avancou"; }
+    v.workflow.status = "CONCLUIDO";
+    setStatus(d, v, "APROVADA_INTERNA");
+    return "concluida";
+  },
+  comment(d, v, c) {
+    need(c.body.trim().length >= 2, "CHECK", "comentário vazio");
+    if (c.x != null) need(c.x >= 0 && c.y >= 0 && c.x + c.w <= 1.0001 && c.y + c.h <= 1.0001, "INV-CMT-001", "marcação fora dos limites da página");
+    v.comments.push({ id: uid(), ...c, status: "ABERTO", author: me().id, at: nowIso(), resolution: null });
+    audit("revision_comment", `${d.code} rev.${v.label}`, "INSERT", { categoria: c.cat });
+  },
+  resolve(d, v, c, status, text, inLabel) {
+    need(canWrite() || me().role === "REVISOR", "ACESSO", "seu perfil não trata comentários");
+    need((text || "").trim().length >= 3, "CHECK", "descreva o tratamento (mín. 3 caracteres)");
+    c.status = status; c.resolution = text.trim(); c.resolvedBy = me().id; c.resolvedAt = nowIso(); c.resolvedIn = inLabel || null;
+    audit("revision_comment", `${d.code} rev.${v.label}`, "UPDATE", { status });
+  },
+  clientReturn(d, v, to) {
+    need(canControl(), "ACESSO", "registrar retorno do cliente exige perfil CONTROLADOR");
+    setStatus(d, v, to); v.returnCode = { APROVADA: "A", APROVADA_COM_COMENTARIOS: "B", REPROVADA: "C" }[to]; v.returnedAt = nowIso();
+  },
+  cancelRev(d, v) { need(canWrite(), "ACESSO", "sem permissão"); setStatus(d, v, "CANCELADA"); if (v.workflow && v.workflow.status === "ATIVO") v.workflow.status = "CANCELADO"; },
+  createGrd(f) {
+    need(canControl(), "ACESSO", "GRD é criada pelo controle de documentos");
+    need(f.recipient.trim().length >= 2, "CHECK", "informe o destinatário");
+    const g = { id: uid(), number: null, recipient: f.recipient.trim(), email: f.email, purpose: f.purpose, status: "RASCUNHO", createdAt: nowIso(), issuedAt: null, issuedBy: null, receivedAt: null, receivedBy: null, items: [], manifest: null, notes: f.notes };
+    S.grds.unshift(g); audit("grd", "rascunho", "INSERT", { destinatario: g.recipient });
+    return g;
+  },
+  addItem(g, docId, revId) {
+    need(canControl(), "ACESSO", "sem permissão");
+    need(g.status === "RASCUNHO", "INV-GRD-002", "GRD já emitida; itens congelados");
+    const { v } = findRev(revId);
+    need(["APROVADA_INTERNA", "EMITIDA", "APROVADA", "APROVADA_COM_COMENTARIOS"].includes(v.status), "INV-GRD-003", `revisão em ${v.status} não pode ser remetida`);
+    if (!g.items.some((x) => x.revId === revId)) g.items.push({ docId, revId });
+  },
+  removeItem(g, revId) { need(g.status === "RASCUNHO", "INV-GRD-002", "GRD já emitida; itens congelados"); g.items = g.items.filter((x) => x.revId !== revId); },
+  issueGrd(g) {
+    need(canControl(), "ACESSO", "sem permissão");
+    need(g.status === "RASCUNHO", "INV-GRD-002", `GRD já está em ${g.status}`);
+    need(g.items.length > 0, "INV-GRD-004", "GRD sem itens não pode ser emitida");
+    // atômico: valida tudo antes de mudar qualquer coisa (como a transação do banco)
+    const list = g.items.map((x) => ({ d: findDoc(x.docId), v: findRev(x.revId).v }));
+    list.forEach(({ v }) => { if (v.status === "APROVADA_INTERNA") need(v.files.some((f) => f.role === "PDF"), "INV-REV-004", `revisão ${v.label} não pode ser emitida sem arquivo PDF`); });
+    list.forEach(({ d, v }) => { if (v.status === "APROVADA_INTERNA") { setStatus(d, v, "EMITIDA"); v.purpose = g.purpose; v.issuedAt = nowIso(); } });
+    g.manifest = sha256(list.map(({ d, v }) => d.code + "|" + v.label + "|" + v.files.map((f) => f.sha).sort().join(",")).sort().join("\n"));
+    g.number = ++S.grdSeq; g.status = "EMITIDA"; g.issuedAt = nowIso(); g.issuedBy = me().id;
+    audit("grd", grdCode(g), "EMITIR", { itens: list.length, manifesto: g.manifest.slice(0, 16) });
+  },
+  receiveGrd(g, who) {
+    need(g.status === "EMITIDA", "INV-GRD-005", "só GRD emitida pode ter recebimento registrado");
+    need((who || "").trim().length >= 2, "CHECK", "informe quem recebeu");
+    g.status = "RECEBIDA"; g.receivedAt = nowIso(); g.receivedBy = who.trim(); audit("grd", grdCode(g), "UPDATE", { status: "RECEBIDA" });
+  },
+  cancelGrd(g) { need(g.status === "RASCUNHO", "INV-GRD-005", "só rascunho pode ser cancelado"); g.status = "CANCELADA"; audit("grd", "rascunho", "UPDATE", { status: "CANCELADA" }); },
+  decideSugg(s, decision) {
+    need(s.status === "PROPOSTA", "INV-AI-002", "decisão sobre sugestão é final");
+    need(canWrite() || me().role === "REVISOR", "INV-AI-001", "decisão exige usuário com perfil de escrita ou revisão");
+    if (decision === "APLICADA") {
+      if (s.kind === "METADADOS_CARIMBO") {
+        const d = findDoc(s.target.docId);
+        if (s.payload.title) d.title = s.payload.title;
+        audit("document", d.code, "UPDATE", { origem: "carimbo (IA) confirmado por humano" });
+      } else if (s.kind === "COMENTARIO_ATENDIDO") {
+        const { d, v } = findRev(s.target.revId); const c = v.comments.find((x) => x.id === s.target.commentId);
+        if (c && c.status === "ABERTO") Ops.resolve(d, v, c, "RESOLVIDO", `Atendido na rev. ${s.payload.revisao} — evidência: ${s.payload.evidencia} (verificado por IA, confirmado por ${me().name})`, s.payload.revisao);
+      }
+    }
+    s.status = decision; s.decidedBy = me().id; s.decidedAt = nowIso();
+    audit("ai_suggestion", s.kind, "UPDATE", { decisao: decision });
+  },
+};
+const grdCode = (g) => (g.number ? `GRD-${PROJECT.code}-${String(g.number).padStart(4, "0")}` : "Rascunho");
+
+/* ---------- verificação de comentários atendidos (heurística de diff, como o worker) ---------- */
+const STOP = new Set("a o e de da do das dos em no na nos nas um uma para por com sem que se ao ou como mais deve favor verificar revisar corrigir incluir alterar indicar conforme".split(" "));
+const terms = (s) => new Set(norm(s).split(/[^a-z0-9.,/-]+/).filter((t) => t.length > 2 && !STOP.has(t)));
+function checkComments(d, v) {
+  const p = prevRev(d, v); if (!p) return 0;
+  const oldT = new Set(p.files.flatMap((f) => f.text.split("\n"))), added = v.files.flatMap((f) => f.text.split("\n")).filter((l) => !oldT.has(l));
+  const at = terms(added.join(" ")); let n = 0;
+  p.comments.filter((c) => c.status === "ABERTO").forEach((c) => {
+    if (S.sugg.some((s) => s.status === "PROPOSTA" && s.target.commentId === c.id)) return;
+    const tt = terms(c.body), hits = [...tt].filter((t) => at.has(t));
+    const score = tt.size ? hits.length / tt.size : 0;
+    if (score >= 0.34) {
+      S.sugg.unshift({ id: uid(), kind: "COMENTARIO_ATENDIDO", target: { type: "comment", docId: d.id, revId: p.id, commentId: c.id }, conf: Math.min(0.6, 0.25 + score * 0.4),
+        engine: "heuristica-diff-v1", status: "PROPOSTA", at: nowIso(), payload: { comentario: c.body, revisao: v.label, evidencia: (added.find((l) => [...terms(l)].some((t) => hits.includes(t))) || hits.join(", ")).slice(0, 140) } });
+      n++;
+    }
+  });
+  return n;
+}
+
+/* ---------- busca: texto sem acento, aproximada e fonética ---------- */
+function phon(w) {
+  return norm(w).replace(/ph/g, "f").replace(/ç/g, "s").replace(/ch/g, "x").replace(/lh/g, "li").replace(/nh/g, "ni").replace(/qu/g, "k").replace(/gu(?=[ei])/g, "g")
+    .replace(/g(?=[ei])/g, "j").replace(/c(?=[ei])/g, "s").replace(/c/g, "k").replace(/y/g, "i").replace(/w/g, "v").replace(/z/g, "s").replace(/^h/, "").replace(/h/g, "")
+    .replace(/ei/g, "e").replace(/ou/g, "o").replace(/(.)\1+/g, "$1").replace(/[aeiou]$/, "");
+}
+function grams(s) { const t = ` ${s} `, g = new Set(); for (let i = 0; i < t.length - 2; i++) g.add(t.slice(i, i + 3)); return g; }
+function sim(a, b) { const A = grams(a), B = grams(b); let n = 0; A.forEach((x) => B.has(x) && n++); return (2 * n) / (A.size + B.size || 1); }
+function search(q, mode) {
+  const qn = norm(q).trim(), toks = qn.split(/\s+/).filter(Boolean), out = { conteudo: [], documentos: [], fonetica: [] };
+  if (qn.length < 2) return out;
+  for (const d of S.docs) {
+    if (mode !== "fonetica") {
+      const hay = norm(d.code + " " + d.title);
+      const s = Math.max(sim(norm(d.code), qn), sim(norm(d.title), qn));
+      if (toks.every((t) => hay.includes(t)) || s > 0.42) out.documentos.push({ d, rank: toks.every((t) => hay.includes(t)) ? 1 + s : s });
+      for (const v of d.revs) for (const f of v.files) {
+        const tn = norm(f.text);
+        if (toks.every((t) => tn.includes(t))) out.conteudo.push({ d, v, f, rank: v.current ? 2 : 1, snippet: snippet(f.text, toks) });
+      }
+    }
+    if (mode !== "texto") {
+      const qp = toks.map(phon).join(" "), tp = norm(d.title).split(/\s+/).map(phon).join(" ");
+      const qw = qp.split(" "), tw = tp.split(" ");
+      const score = qw.reduce((a, w) => a + Math.max(0, ...tw.map((x) => sim(w, x))), 0) / (qw.length || 1);
+      if (score >= 0.55) out.fonetica.push({ d, rank: score });
+    }
+  }
+  Object.values(out).forEach((a) => a.sort((x, y) => y.rank - x.rank));
+  out.conteudo = out.conteudo.slice(0, 30); out.documentos = out.documentos.slice(0, 30); out.fonetica = out.fonetica.slice(0, 30);
+  return out;
+}
+function snippet(text, toks) {
+  const flat = text.replace(/\s+/g, " "), n = norm(flat), i = Math.max(0, n.indexOf(toks[0]));
+  const s = Math.max(0, i - 50), frag = flat.slice(s, i + 110), fn = norm(frag);
+  const marks = [];
+  toks.forEach((t) => { let j = fn.indexOf(t); while (j >= 0) { marks.push([j, j + t.length]); j = fn.indexOf(t, j + t.length); } });
+  marks.sort((a, b) => a[0] - b[0]);
+  let out = s > 0 ? "…" : "", pos = 0;
+  for (const [a, b] of marks) { if (a < pos) continue; out += esc(frag.slice(pos, a)) + "<mark>" + esc(frag.slice(a, b)) + "</mark>"; pos = b; }
+  return raw(out + esc(frag.slice(pos)) + "…");
+}
+</script>
+<script>
+"use strict";
+/* ---------- ícones (traço 1.8, estilo lucide) ---------- */
+const IC = {
+  dash: '<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>',
+  docs: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
+  task: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 12l2 2 4-4"/>',
+  send: '<path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+  bot: '<rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V4M8 14h.01M16 14h.01M9 18h6"/>',
+  shield: '<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>', x: '<path d="M18 6 6 18M6 6l12 12"/>', check: '<path d="M20 6 9 17l-5-5"/>',
+  lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>', unlock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/>',
+  branch: '<circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="8" r="2"/><path d="M6 7v10M18 10c0 4-6 3-12 7"/>',
+  msg: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>', file: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>',
+  scan: '<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/>',
+  hist: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>', upload: '<path d="M12 16V4M7 9l5-5 5 5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
+  left: '<path d="m15 18-6-6 6-6"/>', right: '<path d="m9 18 6-6-6-6"/>', zin: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/>', zout: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M8 11h6"/>',
+  box: '<path d="M4 4h4M16 4h4v4M20 16v4h-4M8 20H4v-4M4 8v0M12 4h0"/><rect x="8" y="8" width="8" height="8" stroke-dasharray="2 2"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>', monitor: '<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  print: '<path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7"/>',
+  trash: '<path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15"/>', dl: '<path d="M12 4v12M7 11l5 5 5-5M4 20h16"/>', alert: '<path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/>',
+  refresh: '<path d="M21 12a9 9 0 0 1-15.5 6.2L3 16M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5M3 21v-5h5"/>', play: '<path d="m6 4 14 8-14 8z"/>',
+  more: '<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>', install: '<path d="M12 3v12M7 10l5 5 5-5"/><rect x="3" y="17" width="18" height="4" rx="1"/>',
+};
+const ic = (n, cls = "icon") => raw(`<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${IC[n]}</svg>`);
+const LOGO = raw(`<svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#14202B"/><path d="M17 11h21l10 10v32a2 2 0 0 1-2 2H17a2 2 0 0 1-2-2V13a2 2 0 0 1 2-2z" fill="#F3F5F6"/><path d="M38 11v8a2 2 0 0 0 2 2h8z" fill="#9FB3C2"/><path d="M15 42h33M30 42v13" stroke="#14202B" stroke-width="2"/><path d="M20 19h12M20 25h20M20 31h20M20 36h14" stroke="#14202B" stroke-width="2.4" stroke-linecap="round" opacity=".55"/><path d="M39 45.5l5.5 8h-11z" fill="#D2412F"/></svg>`);
+
+/* ---------- peças ---------- */
+const badge = (txt, tone = "neutral") => h`<span class="badge t-${tone}">${txt}</span>`;
+const stBadge = (s) => (s ? badge(STATUS[s][0], STATUS[s][1]) : badge("Sem revisão"));
+function delta(label, size = 28, muted = false) {
+  if (!label) return h`<span class="muted">—</span>`;
+  const fs = size < 26 ? 10 : size < 40 ? 12 : 17;
+  return h`<span class="delta" style="width:${size}px;height:${Math.round(size * .9)}px" aria-label="Revisão ${label}">
+    ${raw(`<svg viewBox="0 0 24 21"><path d="M12 1.5 22.5 19.5h-21z" fill="none" stroke="${muted ? "var(--line-strong)" : "var(--delta)"}" stroke-width="1.8" stroke-linejoin="round"/></svg>`)}
+    <b style="font-size:${fs}px;padding-bottom:${Math.round(size * .1)}px;color:${muted ? "var(--muted)" : "var(--ink)"}">${label}</b></span>`;
+}
+const avatar = (u, s = 30) => h`<span class="avatar" style="background:${u.color};width:${s}px;height:${s}px">${u.name.split(" ").map((p) => p[0]).slice(0, 2).join("")}</span>`;
+const empty = (icon, title, text) => h`<div class="empty">${ic(icon)}<p><strong>${title}</strong></p>${text ? h`<p class="small">${text}</p>` : ""}</div>`;
+const fmtBytes = (n) => (n < 1048576 ? `${Math.round(n / 1024)} KB` : `${(n / 1048576).toFixed(1)} MB`);
+
+/* ---------- estado de interface (não persiste) ---------- */
+const ui = { tab: "comentarios", revSel: null, page: 1, zoom: 1, draw: false, draft: null, act: null, q: "", mode: "auto", filter: { q: "", disc: "", status: "" }, grdSel: [], tampered: null };
+let deferredInstall = null;
+
+/* ---------- toasts e folhas ---------- */
+function toast(msg, tone = "ok", code) {
+  const el = document.createElement("div");
+  el.className = "toast" + (tone === "bad" ? " bad" : "");
+  el.innerHTML = (code ? `<span class="inv">Recusado pelo banco · ${esc(code)}</span>` : "") + esc(msg);
+  const box = $("#toasts"); box.appendChild(el);
+  while (box.children.length > 3) box.firstElementChild.remove();
+  setTimeout(() => el.remove(), tone === "bad" ? 6500 : 3200);
+}
+function run(fn, okMsg) {
+  try { const r = fn(); save(); render(); if (okMsg) toast(typeof okMsg === "function" ? okMsg(r) : okMsg); return r; }
+  catch (e) { if (e instanceof Inv) toast(e.message, "bad", e.code); else { console.error(e); toast(e.message || String(e), "bad"); } }
+}
+function sheet(title, body, footer) {
+  $("#layer").innerHTML = h`<div class="scrim" data-a="close"></div>
+    <section class="sheetpane" role="dialog" aria-modal="true" aria-label="${title}">
+      <header><strong>${title}</strong><button class="btn ghost sm" data-a="close" aria-label="Fechar">${ic("x")}</button></header>
+      <div class="body">${body}</div>${footer ? h`<footer>${footer}</footer>` : ""}</section>`.__raw;
+  setTimeout(() => $("#layer .body input, #layer .body select, #layer .body textarea")?.focus(), 30);
+}
+const closeSheet = () => ($("#layer").innerHTML = "");
+
+/* ---------- roteamento ---------- */
+const route = () => (location.hash.replace(/^#\/?/, "") || "painel").split("/");
+function myTasks(uid2 = S.me) {
+  const out = [];
+  for (const d of S.docs) for (const v of d.revs) if (v.workflow && v.workflow.status === "ATIVO")
+    v.workflow.steps.forEach((st, i) => { if (st.status === "PENDENTE" && st.assignee === uid2) out.push({ d, v, st, i }); });
+  return out.sort((a, b) => new Date(a.st.due) - new Date(b.st.due));
+}
+
+/* ---------- shell ---------- */
+function shell(page) {
+  const [r] = route(), u = me(), tasks = myTasks().length, pend = S.sugg.filter((s) => s.status === "PROPOSTA").length, grdOpen = S.grds.filter((g) => g.status === "EMITIDA").length;
+  const nav = [["painel", "Painel", "dash"], ["docs", "Lista mestra", "docs"], ["tarefas", "Pendências", "task", tasks], ["grd", "GRD", "send", grdOpen], ["busca", "Busca", "search"],
+    ["ia", "Sugestões da IA", "bot", pend], ["auditoria", "Auditoria", "shield"], ["ajustes", "Ajustes", "gear"]];
+  const on = (k) => r === k || (k === "docs" && r === "doc") || (k === "grd" && r === "grd");
+  return h`<aside class="side">
+      <div class="sb brand">${LOGO}<span>GPlanSiS<span class="muted">|</span>DOCS</span></div>
+      <nav aria-label="Principal">${nav.map(([k, l, i, n]) => h`<a href="#/${k}" class="${on(k) ? "on" : ""}">${ic(i)}${l}${n ? h`<span class="n">${n}</span>` : ""}</a>`)}</nav>
+      <div class="pad" style="border-top:1px solid var(--line)">${personaChip(u)}</div>
+    </aside>
+    <div class="main">
+      <header class="top">
+        <a href="#/painel" class="brand mob">${LOGO}<span class="small">GPlanSiS<span class="muted">|</span>DOCS</span></a>
+        <a href="#/busca" class="btn desk" style="width:min(460px,40vw);justify-content:flex-start;color:var(--muted)">${ic("search")}Buscar por código, título ou conteúdo</a>
+        <span class="grow"></span>
+        <span class="badge t-neutral desk">${PROJECT.code} · ${PROJECT.name}</span>
+        <a href="#/ia" class="btn ghost sm mob" aria-label="Sugestões da IA" style="position:relative">${ic("bot")}${pend ? h`<span class="dot" style="position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:4px;background:var(--delta)"></span>` : ""}</a>
+        <span class="mob">${personaChip(u, true)}</span>
+      </header>
+      <main class="content" id="main">${page}</main>
+    </div>
+    <nav class="bnav" aria-label="Navegação">
+      ${[["painel", "Painel", "dash"], ["docs", "Lista", "docs"], ["tarefas", "Pendências", "task", tasks], ["grd", "GRD", "send", grdOpen], ["mais", "Mais", "more"]].map(([k, l, i, n]) =>
+        h`<a href="#/${k}" class="${on(k) || (k === "mais" && ["busca", "ia", "auditoria", "ajustes", "mais"].includes(r)) ? "on" : ""}">${ic(i)}${l}${n ? h`<span class="dot">${n}</span>` : ""}</a>`)}
+    </nav>`;
+}
+const personaChip = (u, compact) => h`<button class="persona" data-a="persona" aria-label="Trocar perfil (atual: ${u.name})">${avatar(u)}${compact ? "" : h`<span style="text-align:left;line-height:1.15"><span class="small" style="display:block;font-weight:500">${u.name}</span><span class="xxs muted">${ROLE[u.role]}</span></span>`}</button>`;
+
+/* ---------- login / escolha de perfil ---------- */
+function login() {
+  return h`<div style="min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px">
+    <div style="width:100%;max-width:440px">
+      <div class="brand" style="margin-bottom:22px">${raw(LOGO.__raw.replace("<svg", '<svg style="width:44px;height:44px"'))}<span style="font-size:20px">GPlanSiS<span class="muted">|</span>DOCS</span></div>
+      <h1 class="h1">Cada revisão rastreada, do rascunho à emissão.</h1>
+      <p class="muted small" style="margin:6px 0 20px">Protótipo navegável. Escolha um perfil — as permissões e as regras do banco são aplicadas de verdade, inclusive a segregação autor/aprovador.</p>
+      <ul class="list panel">${USERS.map((u) => h`<li><button class="item" data-a="login" data-id="${u.id}">${avatar(u, 38)}<span class="grow"><strong style="font-weight:600">${u.name}</strong><span class="xs muted" style="display:block">${ROLE[u.role]} · ${u.company}</span></span>${ic("right")}</button></li>`)}</ul>
+      <p class="xxs muted" style="margin-top:14px">Projeto de demonstração ${PROJECT.code} · ${S.docs.length} documentos · dados ficam só neste navegador.</p>
+    </div></div>`;
+}
+
+/* ---------- painel ---------- */
+function pgPainel() {
+  const all = S.docs.map((d) => curRev(d)), t = myTasks(), overdue = t.filter((x) => new Date(x.st.due) < new Date());
+  const mand = S.docs.reduce((a, d) => a + d.revs.reduce((b, v) => b + v.comments.filter((c) => c.cat === "OBRIGATORIO" && c.status === "ABERTO").length, 0), 0);
+  const by = {}; all.forEach((v) => (by[v.status] = (by[v.status] || 0) + 1));
+  const weeks = [...Array(12)].map((_, i) => { const end = Date.now() - (11 - i) * 7 * DAY; return { end, n: 0 }; });
+  S.docs.forEach((d) => d.revs.forEach((v) => { if (!v.issuedAt) return; const age = (Date.now() - new Date(v.issuedAt)) / (7 * DAY); const idx = 11 - Math.floor(age); if (idx >= 0 && idx < 12) weeks[idx].n++; }));
+  const max = Math.max(1, ...weeks.map((w) => w.n)), total = all.length;
+  const recent = S.docs.flatMap((d) => d.revs.map((v) => ({ d, v }))).sort((a, b) => new Date(b.v.createdAt) - new Date(a.v.createdAt)).slice(0, 6);
+  const metric = (l, v, href, alert) => h`<a href="${href || "#/painel"}" class="panel metric ${alert && v ? "alert" : ""}"><div class="xs muted">${l}</div><div class="v tnum">${v}</div></a>`;
+  return h`<div class="phead"><div><h1 class="h1">${new Date().getHours() < 12 ? "Bom dia" : new Date().getHours() < 18 ? "Boa tarde" : "Boa noite"}, ${me().name.split(" ")[0]}</h1><p class="small muted" style="margin:2px 0 0">${ROLE[me().role]} · ${PROJECT.code} ${PROJECT.name}</p></div>
+      ${canWrite() ? h`<button class="btn p" data-a="newdoc">${ic("plus")}Novo documento</button>` : ""}</div>
+    <div class="grid g2 g4 mb">
+      ${metric("Minhas pendências", t.length, "#/tarefas")}${metric("Vencidas", overdue.length, "#/tarefas", true)}
+      ${metric("Comentários obrigatórios abertos", mand, "#/docs", true)}${metric("GRD aguardando recebimento", S.grds.filter((g) => g.status === "EMITIDA").length, "#/grd")}
+    </div>
+    ${t.length ? h`<section class="panel mb"><h2 class="h2 pad" style="padding-bottom:0">Com você agora</h2><ul class="list">${t.slice(0, 4).map(({ d, v, st }) => h`<li><a class="item" href="#/doc/${d.id}">${delta(v.label, 24)}<span class="grow"><span class="code xs ink2">${d.code}</span><span class="trunc" style="display:block">${d.title}</span><span class="xs ${new Date(st.due) < new Date() ? "" : "muted"}" style="${new Date(st.due) < new Date() ? "color:var(--delta)" : ""}">${st.name} · vence ${rel(st.due)}</span></span>${ic("right")}</a></li>`)}</ul></section>` : ""}
+    <div class="grid g3 mb">
+      <section class="panel pad"><h2 class="h2">Emissões por semana</h2>
+        <div style="display:flex;align-items:flex-end;gap:5px;height:150px" role="img" aria-label="Emissões nas últimas 12 semanas">
+          ${weeks.map((w, i) => h`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;justify-content:flex-end"><span class="xxs muted tnum">${w.n || ""}</span><div style="width:100%;border-radius:3px 3px 0 0;background:var(--accent);height:${(w.n / max) * 100}%;min-height:${w.n ? 3 : 1}px;opacity:${w.n ? 1 : .25}"></div><span class="xxs muted">${i === 11 ? "atual" : "-" + (11 - i)}</span></div>`)}
+        </div></section>
+      <section class="panel pad"><h2 class="h2">Revisão vigente</h2><ul class="list" style="border:0">
+        ${Object.entries(by).sort((a, b) => b[1] - a[1]).map(([s, n]) => h`<li style="border:0;padding:4px 0"><div class="row small"><span class="grow">${STATUS[s][0]}</span><span class="tnum muted">${n}</span></div><div class="bar"><div style="width:${(n / total) * 100}%"></div></div></li>`)}
+      </ul></section>
+    </div>
+    <section class="panel"><h2 class="h2 pad" style="padding-bottom:0">Revisões recentes</h2>
+      <ul class="list">${recent.map(({ d, v }) => h`<li><a class="item" href="#/doc/${d.id}">${delta(v.label, 24, !v.current)}<span class="grow"><span class="code xs ink2">${d.code}</span><span class="trunc" style="display:block">${d.title}</span></span><span class="col" style="align-items:flex-end;gap:2px">${stBadge(v.status)}<span class="xxs muted">${rel(v.createdAt)}</span></span></a></li>`)}</ul>
+    </section>`;
+}
+
+/* ---------- lista mestra ---------- */
+function pgDocs() {
+  const f = ui.filter, qn = norm(f.q);
+  const rows = S.docs.filter((d) => { const v = curRev(d);
+    return (!qn || norm(d.code + " " + d.title).includes(qn)) && (!f.disc || d.disc === f.disc) && (!f.status || v.status === f.status); });
+  const statuses = ["", "EM_ELABORACAO", "EM_VERIFICACAO", "APROVADA_INTERNA", "EMITIDA", "APROVADA", "APROVADA_COM_COMENTARIOS"];
+  const open = (d) => curRev(d).comments.filter((c) => c.status === "ABERTO").length;
+  return h`<div class="phead"><div><h1 class="h1">Lista mestra</h1><p class="small muted" style="margin:2px 0 0">${rows.length} de ${S.docs.length} documentos</p></div>
+      ${canWrite() ? h`<button class="btn p" data-a="newdoc">${ic("plus")}Novo</button>` : ""}</div>
+    <div class="col mb">
+      <input class="input" type="search" placeholder="Filtrar por código ou título" value="${f.q}" data-in="fq" aria-label="Filtrar">
+      <div class="chips" role="radiogroup" aria-label="Situação">${statuses.map((s) => h`<button class="chip ${f.status === s ? "on" : ""}" data-a="fstatus" data-v="${s}" role="radio" aria-checked="${f.status === s}">${s ? STATUS[s][0] : "Todas"}</button>`)}</div>
+      <div class="chips" aria-label="Disciplina">${["", ...Object.keys(DISC)].map((k) => h`<button class="chip ${f.disc === k ? "on" : ""}" data-a="fdisc" data-v="${k}">${k || "Todas as disciplinas"}</button>`)}</div>
+    </div>
+    ${rows.length === 0 ? h`<div class="panel">${empty("docs", "Nenhum documento com esses filtros", "Limpe os filtros ou crie um documento.")}</div>` : h`
+    <ul class="list panel mob">${rows.map((d) => { const v = curRev(d), oc = open(d); return h`<li><a class="item" href="#/doc/${d.id}" style="align-items:flex-start">${delta(v.label)}<span class="grow"><span class="code xs ink2 trunc" style="display:block">${d.code}</span><span style="display:block;font-weight:500;line-height:1.3">${d.title}</span><span class="row wrap" style="margin-top:6px;gap:6px">${stBadge(v.status)}${oc ? h`<span class="xs row" style="gap:3px;color:var(--warn)">${ic("msg", "icon")}${oc}</span>` : ""}${d.checkout ? h`<span class="xs row" style="gap:3px;color:var(--info)">${ic("lock")}${user(d.checkout.user).name.split(" ")[0]}</span>` : ""}</span></span></a></li>`; })}</ul>
+    <div class="panel desk scrollx"><table class="t"><thead><tr><th>Código</th><th>Rev.</th><th>Título</th><th>Disc.</th><th>Tipo</th><th>Situação</th><th>Emissão</th><th></th></tr></thead><tbody>
+      ${rows.map((d) => { const v = curRev(d), oc = open(d); return h`<tr class="click" data-a="go" data-href="#/doc/${d.id}"><td class="code">${d.code}</td><td>${delta(v.label, 24)}</td><td>${d.title}</td><td class="code ink2">${d.disc}</td><td class="code ink2">${d.type}</td><td>${stBadge(v.status)}</td><td class="tnum ink2">${fmtD(v.issuedAt)}</td><td><span class="row" style="gap:6px">${oc ? h`<span class="xs row" style="gap:3px;color:var(--warn)">${ic("msg")}${oc}</span>` : ""}${d.checkout ? ic("lock") : ""}</span></td></tr>`; })}
+    </tbody></table></div>`}`;
+}
+
+/* ---------- prancha sintética (SVG) ---------- */
+function sheetSvg(d, v, page) {
+  const r = rng([...d.code].reduce((a, c) => a + c.charCodeAt(0), 0) * 7 + page);
+  if (!DRAWING.has(d.type)) {
+    const W = 595, H = 842; let lines = "";
+    const txt = v.files[0]?.text.split("\n") || [d.title];
+    txt.forEach((l, i) => { if (page === 1) lines += `<text x="56" y="${150 + i * 22}" font-size="${i === 0 ? 13 : 10}" font-weight="${i === 0 ? 600 : 400}">${esc(l.slice(0, 86))}</text>`; });
+    for (let i = 0; i < 22; i++) { const y = (page === 1 ? 300 : 110) + i * 22, w = 360 + r() * 120; lines += `<rect x="56" y="${y}" width="${w}" height="6" rx="2" opacity=".18"/>`; }
+    return `<svg class="sheet" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" fill="var(--sheet-ink)" font-family="Arial,sans-serif">
+      <rect width="${W}" height="${H}" fill="var(--sheet)"/><rect x="28" y="28" width="${W - 56}" height="${H - 56}" fill="none" stroke="var(--sheet-ink)" stroke-width="1.2"/>
+      <rect x="28" y="28" width="${W - 56}" height="70" fill="none" stroke="var(--sheet-ink)"/><text x="44" y="58" font-size="15" font-weight="700">${esc(PROJECT.name.toUpperCase())}</text>
+      <text x="44" y="80" font-size="10">${esc(d.code)} · REV. ${esc(v.label)} · FOLHA ${page}</text><text x="${W - 44}" y="58" font-size="10" text-anchor="end">${esc(TYPE[d.type])}</text>${lines}
+      <text x="${W / 2}" y="${H - 40}" font-size="9" text-anchor="middle">Página ${page}</text></svg>`;
+  }
+  const W = 1189, H = 841; let g = "";
+  for (let i = 0; i < 9; i++) { const x = 110 + r() * 700, y = 110 + r() * 440; g += r() > .5 ? `<circle cx="${x}" cy="${y}" r="${18 + r() * 26}" fill="none" stroke-width="2"/>` : `<rect x="${x}" y="${y}" width="${50 + r() * 110}" height="${30 + r() * 70}" fill="none" stroke-width="2"/>`; }
+  for (let i = 0; i < 14; i++) { const x = 100 + r() * 640, y = 100 + r() * 420, hz = r() > .5, len = 80 + r() * (hz ? 260 : 160); g += `<path d="M${x.toFixed(1)} ${y.toFixed(1)} ${hz ? "h" : "v"}${len.toFixed(1)}" stroke-width="${r() > .7 ? 3 : 1.4}" fill="none"/>`; }
+  for (let i = 0; i < 6; i++) { const x = 120 + r() * 760, y = 120 + r() * 460; g += `<text x="${x}" y="${y}" font-size="11">${["PSV-1101", "B-101A", 'VS-1203 6"', "PT-1101", "N3", "EL. +4500"][i]}</text>`; }
+  const refs = [...Array(8)].map((_, i) => `<text x="${80 + i * 140}" y="44" font-size="11" text-anchor="middle">${i + 1}</text><text x="44" y="${110 + i * 90}" font-size="11">${"ABCDEFGH"[i]}</text>`).join("");
+  const tbx = W - 400, tby = H - 170;
+  return `<svg class="sheet" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" stroke="var(--sheet-ink)" fill="var(--sheet-ink)" font-family="Arial,sans-serif">
+    <rect width="${W}" height="${H}" fill="var(--sheet)" stroke="none"/><rect x="24" y="24" width="${W - 48}" height="${H - 48}" fill="none" stroke-width="1"/><rect x="56" y="56" width="${W - 112}" height="${H - 112}" fill="none" stroke-width="2.2"/>
+    <g stroke="none">${refs}</g><g>${g}</g>
+    <g stroke="none"><text x="80" y="${H - 120}" font-size="11">NOTA 1: TODAS AS COTAS EM MILÍMETROS.</text><text x="80" y="${H - 102}" font-size="11">NOTA 2: FLANGES CLASSE 300 CONFORME ASME B16.5.</text></g>
+    <g fill="none" stroke-width="1.6"><rect x="${tbx}" y="${tby}" width="344" height="114"/><path d="M${tbx} ${tby + 44}h344M${tbx} ${tby + 80}h344M${tbx + 250} ${tby + 80}v34M${tbx + 170} ${tby + 80}v34"/></g>
+    <g stroke="none"><text x="${tbx + 8}" y="${tby + 14}" font-size="8">TÍTULO</text><text x="${tbx + 8}" y="${tby + 34}" font-size="12" font-weight="700">${esc(d.title.toUpperCase().slice(0, 44))}</text>
+      <text x="${tbx + 8}" y="${tby + 56}" font-size="8">NÚMERO</text><text x="${tbx + 8}" y="${tby + 73}" font-size="14" font-family="monospace" font-weight="700">${esc(d.code)}</text>
+      <text x="${tbx + 8}" y="${tby + 94}" font-size="8">ESCALA</text><text x="${tbx + 8}" y="${tby + 108}" font-size="11">1:50</text>
+      <text x="${tbx + 178}" y="${tby + 94}" font-size="8">FOLHA</text><text x="${tbx + 178}" y="${tby + 108}" font-size="11">${page}/2</text>
+      <text x="${tbx + 258}" y="${tby + 94}" font-size="8">REV.</text></g>
+    <path d="M${tbx + 305} ${tby + 86} l14 24 h-28z" fill="none" stroke="#d2412f" stroke-width="2"/><text x="${tbx + 305}" y="${tby + 106}" font-size="11" text-anchor="middle" stroke="none" font-family="monospace" font-weight="700">${esc(v.label)}</text>
+  </svg>`;
+}
+
+/* ---------- detalhe do documento ---------- */
+function pgDoc(id) {
+  const d = findDoc(id); if (!d) return empty("docs", "Documento não encontrado", "");
+  const v = d.revs.find((x) => x.id === ui.revSel) || curRev(d);
+  const u = me(), lockedOther = d.checkout && d.checkout.user !== u.id, editable = v.status === "EM_ELABORACAO" && canWrite() && !lockedOther && v.current;
+  const hasOpen = d.revs.some((x) => OPEN.includes(x.status)), pdf = v.files.find((f) => f.role === "PDF");
+  const pages = pdf ? pdf.pages : 1; if (ui.page > pages) ui.page = 1;
+  const sugg = S.sugg.filter((s) => s.status === "PROPOSTA" && s.target.docId === d.id);
+  const comm = v.comments, openN = comm.filter((c) => c.status === "ABERTO").length;
+  const pageC = comm.filter((c) => c.page === ui.page && c.x != null);
+  const isDraw = DRAWING.has(d.type), ratio = isDraw ? 841 / 1189 : 842 / 595;
+  const tabs = [["comentarios", "Comentários", "msg", openN], ["arquivos", "Arquivos", "file", v.files.length], ["workflow", "Workflow", "branch"], ["texto", "Texto OCR", "scan"], ["historico", "Histórico", "hist"]];
+  let idx = 0;
+  return h`<nav class="xs muted" style="margin-bottom:8px"><a href="#/docs">Lista mestra</a> / <span class="code">${d.code}</span></nav>
+  <section class="panel tb mb">
+    <div class="tb-top"><div style="padding:12px 14px;min-width:0"><div class="code xs ink2">${d.code}</div><h1 class="h1" style="font-size:19px;margin-top:2px">${d.title}</h1></div>
+      <div style="padding:10px 16px;border-left:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">${delta(v.label, 42, !v.current)}<span class="xxs muted">${v.current ? "vigente" : "histórica"}</span></div></div>
+    <div class="tb-cells"><div><div class="k">Disciplina</div><div class="v">${d.disc} · ${DISC[d.disc]}</div></div><div><div class="k">Tipo</div><div class="v">${d.type} · ${TYPE[d.type]}</div></div>
+      <div><div class="k">Situação</div><div class="v">${stBadge(v.status)}</div></div><div><div class="k">Finalidade</div><div class="v">${v.purpose ? PURPOSE[v.purpose] : "—"}</div></div>
+      <div><div class="k">Emitida</div><div class="v tnum">${fmtD(v.issuedAt)}</div></div><div><div class="k">Retorno do cliente</div><div class="v">${v.returnCode ? h`<span class="code">${v.returnCode}</span> em ${fmtD(v.returnedAt)}` : "—"}</div></div></div>
+    <div class="tb-actions">
+      ${d.checkout ? h`<span class="small row" style="color:var(--info);gap:4px;width:100%">${ic("lock")}Em check-out com ${user(d.checkout.user).name} ${rel(d.checkout.at)}</span>` : ""}
+      ${canWrite() ? (d.checkout ? (d.checkout.user === u.id || canControl() ? h`<button class="btn sm" data-a="checkin" data-id="${d.id}">${ic("unlock")}Check-in</button>` : "") : h`<button class="btn sm" data-a="checkout" data-id="${d.id}">${ic("lock")}Check-out</button>`) : ""}
+      ${canWrite() && !hasOpen && !lockedOther ? h`<button class="btn sm" data-a="newrev" data-id="${d.id}">${ic("branch")}Nova revisão</button>` : ""}
+      ${editable ? h`<button class="btn sm p" data-a="wf" data-id="${d.id}" data-rev="${v.id}">${ic("send")}Enviar para verificação</button>` : ""}
+      ${v.status === "EMITIDA" && canControl() ? h`<button class="btn sm p" data-a="return" data-id="${d.id}" data-rev="${v.id}">Registrar retorno</button>` : ""}
+      ${v.status === "APROVADA_INTERNA" && canControl() ? h`<a class="btn sm" href="#/grd">${ic("send")}Incluir em GRD</a>` : ""}
+      ${d.revs.length > 1 && v.current ? h`<button class="btn sm ghost" data-a="checkcm" data-id="${d.id}" data-rev="${v.id}">${ic("bot")}Verificar comentários anteriores</button>` : ""}
+      ${OPEN.includes(v.status) && canWrite() ? h`<button class="btn sm danger" data-a="cancelrev" data-id="${d.id}" data-rev="${v.id}">Cancelar revisão</button>` : ""}
+    </div>
+  </section>
+  ${sugg.map((s) => suggCard(s))}
+  <div class="revs" role="tablist" aria-label="Revisões">${d.revs.slice().reverse().map((x) => h`<button class="revbtn ${x.id === v.id ? "on" : ""}" role="tab" aria-selected="${x.id === v.id}" data-a="rev" data-v="${x.id}">${delta(x.label, 24, !x.current)}<span><span class="xs" style="display:block;font-weight:500">${STATUS[x.status][0]}</span><span class="xxs muted">${fmtD(x.issuedAt || x.createdAt)}</span></span></button>`)}</div>
+  <div class="detail">
+    <section class="panel viewer">
+      <div class="vbar">
+        ${pdf ? h`<button class="btn ghost sm" data-a="pg" data-v="-1" ${ui.page <= 1 ? "disabled" : ""} aria-label="Página anterior">${ic("left")}</button><span class="small tnum">${ui.page} / ${pages}</span><button class="btn ghost sm" data-a="pg" data-v="1" ${ui.page >= pages ? "disabled" : ""} aria-label="Próxima página">${ic("right")}</button>
+        <button class="btn ghost sm" data-a="zoom" data-v="-1" aria-label="Reduzir">${ic("zout")}</button><span class="xs tnum" style="width:40px;text-align:center">${Math.round(ui.zoom * 100)}%</span><button class="btn ghost sm" data-a="zoom" data-v="1" aria-label="Ampliar">${ic("zin")}</button>
+        ${u.role !== "LEITOR" ? h`<button class="btn sm ${ui.draw ? "p" : ""}" style="margin-left:auto" data-a="draw" aria-pressed="${ui.draw}">${ic("box")}${ui.draw ? "Marque a área" : "Comentar área"}</button>` : ""}` : h`<span class="small muted" style="padding:6px">Sem PDF nesta revisão</span>`}
+      </div>
+      <div class="vstage" style="max-height:72dvh">
+        ${pdf ? h`<div class="sheetwrap" style="width:${ui.zoom * 100}%">
+            ${raw(sheetSvg(d, v, ui.page))}
+            <div class="overlay ${ui.draw ? "drawing" : ""}" data-overlay="1" data-doc="${d.id}" data-rev="${v.id}">
+              ${pageC.map((c) => { idx++; return h`<button class="cm ${c.status !== "ABERTO" ? "done" : ""} ${ui.act === c.id ? "act" : ""}" data-a="cm" data-v="${c.id}" title="${c.body}" style="left:${c.x * 100}%;top:${c.y * 100}%;width:${c.w * 100}%;height:${c.h * 100}%;border-color:${CAT[c.cat][1]}"><i style="background:${CAT[c.cat][1]}">${idx}</i></button>`; })}
+              ${ui.draft && ui.draft.page === ui.page ? h`<div class="drag" style="left:${ui.draft.x * 100}%;top:${ui.draft.y * 100}%;width:${ui.draft.w * 100}%;height:${ui.draft.h * 100}%"></div>` : ""}
+            </div></div>` : h`<div class="panel" style="max-width:520px;margin:20px auto">${editable ? h`<label class="empty" style="display:block;cursor:pointer">${ic("upload")}<p><strong>Toque para anexar arquivos</strong></p><p class="small">PDF, imagem ou Office. O OCR roda em seguida.</p><input type="file" multiple hidden data-upload="${d.id}" data-rev="${v.id}"></label>` : empty("file", "Nenhum PDF nesta revisão", v.files.length ? "Há só arquivos nativos." : "Esta revisão ainda não tem arquivos.")}</div>`}
+      </div>
+    </section>
+    <aside class="panel" style="min-height:320px">
+      <div class="tabs" role="tablist">${tabs.map(([k, l, i, n]) => h`<button class="tab ${ui.tab === k ? "on" : ""}" role="tab" aria-selected="${ui.tab === k}" data-a="tab" data-v="${k}">${ic(i)}${l}${n ? h`<span class="count tnum">${n}</span>` : ""}</button>`)}</div>
+      <div style="padding:12px;overflow-y:auto;flex:1">${tabBody(d, v, editable)}</div>
+    </aside>
+  </div>`;
+}
+function suggCard(s) {
+  const pl = Object.entries(s.payload).filter(([k]) => k !== "comentario");
+  return h`<section class="panel pad mb" style="border-left:4px solid var(--info)">
+    <div class="row small" style="font-weight:600;margin-bottom:6px">${ic("bot")}<span class="grow">${s.kind === "METADADOS_CARIMBO" ? "A IA leu o carimbo e propõe atualizar metadados" : "A IA encontrou evidência de comentário atendido"}</span><span class="xs muted tnum">${Math.round(s.conf * 100)}%</span></div>
+    ${s.payload.comentario ? h`<p class="small" style="margin:0 0 6px">“${s.payload.comentario}”</p>` : ""}
+    <dl style="display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin:0 0 10px" class="small">${pl.map(([k, val]) => h`<dt class="muted">${k}</dt><dd style="margin:0;overflow-wrap:anywhere">${val}</dd>`)}</dl>
+    <div class="row"><span class="xxs muted grow">${s.engine} · a decisão é sua</span><button class="btn sm" data-a="sugg" data-id="${s.id}" data-v="REJEITADA">${ic("x")}Rejeitar</button><button class="btn sm p" data-a="sugg" data-id="${s.id}" data-v="APLICADA">${ic("check")}Aplicar</button></div>
+  </section>`;
+}
+function tabBody(d, v, editable) {
+  const u = me();
+  if (ui.tab === "comentarios") {
+    let n = 0;
+    return h`${u.role !== "LEITOR" ? h`<form class="panel pad mb" data-form="comment" data-doc="${d.id}" data-rev="${v.id}" style="${ui.draft ? "border-color:var(--delta)" : ""}">
+        <p class="xs muted" style="margin:0 0 6px">${ui.draft ? h`Comentário na folha ${ui.draft.page}, área marcada · <button type="button" class="xs" style="background:none;border:0;text-decoration:underline;color:var(--accent);cursor:pointer" data-a="nodraft">descartar área</button>` : "Comentário geral · use “Comentar área” na prancha para marcar a folha"}</p>
+        <textarea class="input" name="body" placeholder="Descreva a alteração solicitada" aria-label="Comentário" required minlength="2"></textarea>
+        <div class="row" style="margin-top:8px"><select class="input" name="cat" style="width:auto" aria-label="Categoria">${Object.entries(CAT).map(([k, [l]]) => h`<option value="${k}" ${k === "TECNICO" ? "selected" : ""}>${l}</option>`)}</select><span class="grow"></span><button class="btn p">Comentar</button></div></form>` : ""}
+      ${v.comments.length === 0 ? empty("msg", "Sem comentários nesta revisão", "") : h`<ul class="list" style="display:flex;flex-direction:column;gap:8px">${v.comments.map((c) => { const i = c.x != null ? ++n : null; return h`<li class="panel pad ${ui.act === c.id ? "act" : ""}" style="border-top:1px solid var(--line);${ui.act === c.id ? "box-shadow:0 0 0 2px color-mix(in oklab,var(--warn) 50%,transparent)" : ""}" data-a="cm" data-v="${c.id}">
+          <div class="row xs" style="margin-bottom:4px;gap:6px">${i ? h`<span class="avatar" style="width:20px;height:20px;background:${CAT[c.cat][1]};font-size:11px">${i}</span>` : ""}${badge(CAT[c.cat][0], CAT[c.cat][2])}${c.page ? h`<span class="muted">folha ${c.page}</span>` : ""}<span class="grow"></span><span class="muted">${user(c.author).name} · ${rel(c.at)}</span></div>
+          <p class="small" style="margin:0;${c.status !== "ABERTO" ? "color:var(--muted)" : ""}">${c.body}</p>
+          ${c.status !== "ABERTO" ? h`<p class="xs" style="margin:6px 0 0;color:var(--ok)">✓ ${c.status === "RESOLVIDO" ? "Resolvido" : "Não aplicável"} por ${user(c.resolvedBy).name}: ${c.resolution}</p>`
+            : (canWrite() || u.role === "REVISOR") ? h`<button class="xs" style="background:none;border:0;color:var(--accent);padding:6px 0 0;cursor:pointer" data-a="resolve" data-doc="${d.id}" data-rev="${v.id}" data-id="${c.id}">Registrar tratamento</button>` : ""}
+        </li>`; })}</ul>`}`;
+  }
+  if (ui.tab === "arquivos") return h`
+    ${editable ? h`<label class="btn block mb" style="cursor:pointer">${ic("upload")}Anexar arquivos<input type="file" multiple hidden data-upload="${d.id}" data-rev="${v.id}"></label>` : v.status !== "EM_ELABORACAO" ? h`<p class="xs muted row" style="gap:4px">${ic("lock")}Arquivos congelados: a revisão saiu de elaboração (INV-REV-003).</p>` : ""}
+    ${v.files.length === 0 ? empty("file", "Sem arquivos", "") : v.files.map((f) => h`<div class="panel pad mb"><div class="row" style="align-items:flex-start">${ic("file")}<div class="grow"><div class="small trunc" style="font-weight:500" title="${f.name}">${f.name}</div>
+      <div class="xs muted tnum">${f.role} · ${fmtBytes(f.size)} · ${f.pages} pág.</div><div class="code xxs muted trunc" title="SHA-256 ${f.sha}">sha256 ${f.sha.slice(0, 20)}…</div></div>
+      ${f.engine === "texto-nativo" ? badge("Texto nativo", "ok") : badge(`OCR ${f.conf}%`, f.conf >= 80 ? "ok" : "warn")}</div></div>`)}`;
+  if (ui.tab === "workflow") {
+    const w = v.workflow;
+    if (!w) return empty("branch", "Nenhum workflow nesta revisão", editable ? "Use “Enviar para verificação”." : "");
+    return h`<div class="row mb"><strong class="small grow">Verificação + aprovação</strong>${badge(w.status.toLowerCase(), w.status === "CONCLUIDO" ? "ok" : w.status === "REPROVADO" ? "bad" : "warn")}</div>
+      <ol class="timeline">${w.steps.map((st, i) => h`<li style="--c:${st.status === "APROVADA" ? "var(--ok)" : st.status === "REPROVADA" ? "var(--bad)" : st.status === "PENDENTE" ? "var(--warn)" : "var(--line-strong)"}">
+        <div class="small"><strong style="font-weight:600">${st.name}</strong> · ${user(st.assignee).name}</div>
+        <div class="xs muted">${st.status === "PENDENTE" ? `Prazo ${fmtDT(st.due)}${new Date(st.due) < new Date() ? " · vencida" : ""}` : st.status === "AGUARDANDO" ? "Aguardando etapa anterior" : `${st.status.toLowerCase()} em ${fmtDT(st.decidedAt)}`}</div>
+        ${st.note ? h`<p class="small" style="margin:2px 0 0">“${st.note}”</p>` : ""}
+        ${st.status === "PENDENTE" && st.assignee === u.id ? h`<div class="row" style="margin-top:8px"><button class="btn sm danger" data-a="reject" data-doc="${d.id}" data-rev="${v.id}" data-i="${i}">${ic("x")}Reprovar</button><button class="btn sm p" data-a="approve" data-doc="${d.id}" data-rev="${v.id}" data-i="${i}">${ic("check")}Aprovar</button></div>` : ""}
+      </li>`)}</ol>
+      <p class="xxs muted">O autor da revisão não pode aprová-la (INV-WF-003). Troque de perfil para decidir como revisor ou controle.</p>`;
+  }
+  if (ui.tab === "texto") {
+    const f = v.files[0]; if (!f) return empty("scan", "Texto ainda não extraído", "");
+    return h`<div class="xs muted">${f.engine === "texto-nativo" ? "Camada de texto nativa do PDF" : `Tesseract · confiança média ${f.conf}%`}</div><pre class="ocr">${f.text}</pre>`;
+  }
+  const ev = S.audit.filter((e) => e.id.startsWith(d.code) || e.id === d.code).slice().reverse();
+  return ev.length ? h`<ul class="list">${ev.map((e) => h`<li style="padding:8px 0"><div class="small"><strong style="font-weight:600">${e.actor === "sistema" ? "sistema" : user(e.actor).name}</strong> <span class="muted">${e.action.toLowerCase()} ${e.entity}</span></div><div class="xxs muted">${fmtDT(e.at)} · <span class="code" title="${e.hash}">#${e.hash.slice(0, 10)}</span></div></li>`)}</ul>` : empty("hist", "Sem eventos", "");
+}
+
+/* ---------- pendências ---------- */
+function pgTarefas() {
+  const t = myTasks();
+  return h`<div class="phead"><div><h1 class="h1">Minhas pendências</h1><p class="small muted" style="margin:2px 0 0">Etapas de workflow com ${me().name}, pela ordem do prazo</p></div></div>
+    ${t.length === 0 ? h`<div class="panel">${empty("task", "Nada pendente com você", me().role === "AUTOR" ? "Autores não decidem etapas. Troque para Rui (revisor) ou Carla (controle) para aprovar." : "Quando uma revisão for enviada para você, ela aparece aqui.")}</div>` :
+    h`<ul class="list" style="display:flex;flex-direction:column;gap:10px">${t.map(({ d, v, st, i }) => { const late = new Date(st.due) < new Date(); return h`<li class="panel pad" style="${late ? "border-left:4px solid var(--delta)" : ""}">
+      <div class="row" style="align-items:flex-start">${delta(v.label)}<div class="grow"><a href="#/doc/${d.id}" class="code xs ink2">${d.code}</a><div style="font-weight:500">${d.title}</div><div class="xs muted">Etapa ${i + 1}: ${st.name}</div></div>${badge(late ? `Vencida ${rel(st.due)}` : `Vence ${rel(st.due)}`, late ? "bad" : "warn")}</div>
+      <div class="row" style="margin-top:10px;justify-content:flex-end"><a class="btn sm" href="#/doc/${d.id}" style="margin-right:auto">Abrir e comentar</a><button class="btn sm danger" data-a="reject" data-doc="${d.id}" data-rev="${v.id}" data-i="${i}">${ic("x")}Reprovar</button><button class="btn sm p" data-a="approve" data-doc="${d.id}" data-rev="${v.id}" data-i="${i}">${ic("check")}Aprovar</button></div>
+    </li>`; })}</ul>`}`;
+}
+
+/* ---------- GRD ---------- */
+const GRD_T = { RASCUNHO: "neutral", EMITIDA: "accent", RECEBIDA: "ok", CANCELADA: "neutral" };
+function pgGrds() {
+  return h`<div class="phead"><div><h1 class="h1">Guias de remessa</h1><p class="small muted" style="margin:2px 0 0">Número sequencial atribuído só na emissão (INV-GRD-001)</p></div>${canControl() ? h`<button class="btn p" data-a="newgrd">${ic("plus")}Nova GRD</button>` : ""}</div>
+    ${!canControl() ? h`<p class="small muted mb">GRD é conduzida pelo controle de documentos — troque para Carla para criar e emitir.</p>` : ""}
+    <ul class="list panel">${S.grds.map((g) => h`<li><a class="item" href="#/grd/${g.id}">${ic("send")}<span class="grow"><span class="code small">${grdCode(g)}</span><span class="xs muted" style="display:block">${g.recipient} · ${PURPOSE[g.purpose]} · ${g.items.length} item(ns)</span></span><span class="col" style="align-items:flex-end;gap:2px">${badge(g.status.toLowerCase(), GRD_T[g.status])}<span class="xxs muted">${fmtD(g.issuedAt || g.createdAt)}</span></span></a></li>`)}</ul>`;
+}
+function pgGrd(id) {
+  const g = S.grds.find((x) => x.id === id); if (!g) return empty("send", "GRD não encontrada", "");
+  const draft = g.status === "RASCUNHO", items = g.items.map((x) => ({ d: findDoc(x.docId), v: findRev(x.revId).v }));
+  const cand = draft ? S.docs.flatMap((d) => d.revs.filter((v) => ["APROVADA_INTERNA", "EMITIDA", "APROVADA", "APROVADA_COM_COMENTARIOS"].includes(v.status) && v.current && !g.items.some((x) => x.revId === v.id)).map((v) => ({ d, v }))).sort((a, b) => (a.v.status === "APROVADA_INTERNA" ? -1 : 0) - (b.v.status === "APROVADA_INTERNA" ? -1 : 0)) : [];
+  return h`<nav class="xs muted noprint" style="margin-bottom:8px"><a href="#/grd">GRD</a> / ${grdCode(g)}</nav>
+    <div class="phead"><div><h1 class="h1 row" style="gap:10px"><span class="code">${grdCode(g)}</span>${badge(g.status.toLowerCase(), GRD_T[g.status])}</h1><p class="small muted" style="margin:2px 0 0">${PROJECT.code} · ${PROJECT.name}</p></div>
+      <div class="row wrap noprint">${!draft ? h`<button class="btn" data-a="print">${ic("print")}Imprimir</button>` : ""}${draft && canControl() ? h`<button class="btn danger" data-a="cancelgrd" data-id="${g.id}">Cancelar</button><button class="btn p" data-a="issue" data-id="${g.id}">${ic("send")}Emitir GRD</button>` : ""}</div></div>
+    <section class="panel tb mb"><div class="tb-cells" style="grid-template-columns:1fr 1fr">
+      <div><div class="k">Destinatário</div><div class="v">${g.recipient}</div></div><div><div class="k">Finalidade</div><div class="v">${g.purpose} · ${PURPOSE[g.purpose]}</div></div>
+      <div><div class="k">Emitida</div><div class="v">${fmtDT(g.issuedAt)}${g.issuedBy ? " · " + user(g.issuedBy).name : ""}</div></div><div><div class="k">Recebida</div><div class="v">${fmtDT(g.receivedAt)}${g.receivedBy ? " · " + g.receivedBy : ""}</div></div></div></section>
+    ${g.manifest ? h`<p class="xs muted mb">Manifesto SHA-256 <span class="code" style="overflow-wrap:anywhere">${g.manifest}</span> — prova do conteúdo remetido.</p>` : ""}
+    <section class="panel mb"><h2 class="h2 pad" style="padding-bottom:0">Itens</h2>
+      ${items.length === 0 ? empty("docs", "GRD sem itens", "Inclua abaixo as revisões a remeter.") : h`<ul class="list">${items.map(({ d, v }) => h`<li class="item">${delta(v.label, 24)}<span class="grow"><a href="#/doc/${d.id}" class="code xs ink2">${d.code}</a><span class="trunc small" style="display:block">${d.title}</span></span>${stBadge(v.status)}${draft && canControl() ? h`<button class="btn ghost sm" data-a="rmitem" data-id="${g.id}" data-rev="${v.id}" aria-label="Remover">${ic("trash")}</button>` : ""}</li>`)}</ul>`}
+    </section>
+    ${draft && canControl() ? h`<section class="panel mb noprint"><div class="row pad" style="padding-bottom:6px"><h2 class="h2 grow" style="margin:0">Revisões disponíveis</h2><button class="btn sm p" data-a="additems" data-id="${g.id}" ${ui.grdSel.length ? "" : "disabled"}>Incluir ${ui.grdSel.length || ""}</button></div>
+      ${cand.length === 0 ? h`<p class="small muted pad">Nenhuma revisão aprovada internamente ou emitida disponível.</p>` : h`<ul class="list">${cand.map(({ d, v }) => h`<li><label class="item" style="cursor:pointer"><input type="checkbox" data-a="sel" data-v="${d.id}|${v.id}" ${ui.grdSel.includes(d.id + "|" + v.id) ? "checked" : ""}>${delta(v.label, 24)}<span class="grow"><span class="code xs ink2">${d.code}</span><span class="trunc small" style="display:block">${d.title}</span></span>${stBadge(v.status)}</label></li>`)}</ul>`}
+      <p class="xxs muted pad" style="padding-top:0">Dica de teste: inclua uma revisão em elaboração pelo detalhe dela — o banco recusa (INV-GRD-003).</p></section>` : ""}
+    ${g.status === "EMITIDA" && canControl() ? h`<form class="panel pad noprint" data-form="receive" data-id="${g.id}"><label class="label" for="rcv">Protocolo de recebimento</label><div class="row"><input id="rcv" class="input" name="who" placeholder="Nome de quem recebeu" required><button class="btn p">Confirmar</button></div></form>` : ""}`;
+}
+
+/* ---------- busca ---------- */
+function pgBusca() {
+  const r = ui.q.trim().length >= 2 ? search(ui.q, ui.mode) : null;
+  const groups = r ? [["conteudo", "No conteúdo dos arquivos (OCR)"], ["documentos", "Por código e título"], ["fonetica", "Por som parecido"]].filter(([k]) => r[k].length) : [];
+  return h`<div class="phead"><div><h1 class="h1">Busca</h1><p class="small muted" style="margin:2px 0 0">Sem acentos, aproximada e fonética — “aranjo jeral” encontra “arranjo geral”</p></div></div>
+    <input class="input mb" type="search" style="min-height:50px;font-size:16px" placeholder="Ex.: válvula de segurança, classe 300, UTE01-ELE" value="${ui.q}" data-in="q" aria-label="Termo de busca" autofocus>
+    <div class="chips mb" role="radiogroup">${[["auto", "Tudo"], ["texto", "Conteúdo e código"], ["fonetica", "Fonética"]].map(([k, l]) => h`<button class="chip ${ui.mode === k ? "on" : ""}" data-a="mode" data-v="${k}" role="radio" aria-checked="${ui.mode === k}">${l}</button>`)}</div>
+    <div id="results">${!r ? h`<div class="panel">${empty("search", "Digite ao menos duas letras", "Experimente: psv, flange classe 300, caldera, aranjo jeral.")}<div class="chips" style="justify-content:center;padding:0 0 18px">${["psv 1101", "classe 300", "caldera", "aranjo jeral", "curto-circuito"].map((s) => h`<button class="chip" data-a="try" data-v="${s}">${s}</button>`)}</div></div>` :
+      groups.length === 0 ? h`<div class="panel">${empty("search", `Nada encontrado para “${ui.q}”`, "Tente a busca fonética ou menos termos.")}</div>` :
+      groups.map(([k, l]) => h`<section class="mb"><h2 class="xs muted" style="font-weight:600;margin:0 0 6px">${l} · ${r[k].length}</h2><ul class="list panel">${r[k].map((x) => h`<li><a class="item" href="#/doc/${x.d.id}" style="align-items:flex-start">${delta((x.v || curRev(x.d)).label, 24, x.v && !x.v.current)}<span class="grow"><span class="code xs ink2">${x.d.code}</span><span class="trunc" style="display:block;font-weight:500">${x.d.title}</span>${x.snippet ? h`<span class="small ink2" style="display:block;margin-top:3px">${x.snippet}</span><span class="xxs muted">${x.f.name}</span>` : ""}</span></a></li>`)}</ul></section>`)}</div>`;
+}
+
+/* ---------- IA ---------- */
+function pgIA() {
+  const list = S.sugg.slice().sort((a, b) => (a.status === "PROPOSTA" ? -1 : 1) - (b.status === "PROPOSTA" ? -1 : 1));
+  return h`<div class="phead"><div><h1 class="h1">Sugestões da IA</h1><p class="small muted" style="margin:2px 0 0">A IA propõe, o humano decide. Nenhuma proposta altera documento ou comentário sem sua decisão (INV-AI-001).</p></div></div>
+    ${list.length === 0 ? h`<div class="panel">${empty("bot", "Nenhuma proposta", "Propostas surgem após o OCR (leitura do carimbo) e ao comparar uma nova revisão com os comentários da anterior.")}</div>` :
+    list.map((s) => s.status === "PROPOSTA" ? h`<div>${raw(h`<a href="#/doc/${s.target.docId}" class="xs code ink2" style="display:block;margin:0 0 4px 2px">${findDoc(s.target.docId)?.code}</a>`.__raw)}${suggCard(s)}</div>` :
+      h`<div class="panel pad mb" style="opacity:.8"><div class="row small">${ic("bot")}<span class="grow">${s.kind === "METADADOS_CARIMBO" ? "Leitura de carimbo" : "Comentário atendido"} · <span class="code xs">${findDoc(s.target.docId)?.code}</span></span>${badge(s.status.toLowerCase(), s.status === "APLICADA" ? "ok" : "neutral")}</div><p class="xs muted" style="margin:4px 0 0">Decidido por ${user(s.decidedBy).name} ${rel(s.decidedAt)}</p></div>`)}`;
+}
+
+/* ---------- auditoria ---------- */
+function pgAuditoria() {
+  const vr = verifyChain(), ev = S.audit.slice().reverse().slice(0, 150);
+  return h`<div class="phead"><div><h1 class="h1">Trilha de auditoria</h1><p class="small muted" style="margin:2px 0 0">Append-only, encadeada por SHA-256 — recalculada agora, neste navegador.</p></div></div>
+    <section class="panel pad mb row wrap" style="${vr.ok ? "" : "border-color:var(--bad)"}">
+      <span style="color:${vr.ok ? "var(--ok)" : "var(--bad)"}">${ic(vr.ok ? "shield" : "alert")}</span>
+      <div class="grow"><div style="font-weight:600;${vr.ok ? "" : "color:var(--bad)"}">${vr.ok ? "Cadeia íntegra" : `Cadeia quebrada no evento #${vr.n}`}</div><div class="xs muted">${vr.ok ? `${vr.n} eventos verificados` : `${vr.why}. Trate como incidente de segurança.`}</div></div>
+      ${ui.tampered ? h`<button class="btn sm" data-a="untamper">Desfazer adulteração</button>` : h`<button class="btn sm danger" data-a="tamper" title="Altera um evento antigo sem recalcular o hash">Simular adulteração</button>`}
+    </section>
+    <ul class="list panel">${ev.map((e) => h`<li class="item" style="align-items:flex-start"><span class="xs tnum muted" style="width:34px">#${e.n}</span><span class="grow"><span class="small"><strong style="font-weight:600">${e.actor === "sistema" ? "sistema" : user(e.actor).name}</strong> <span class="code xs">${e.action}</span> ${e.entity}</span><span class="xs ink2 trunc" style="display:block">${e.id} · ${e.data}</span><span class="xxs muted">${fmtDT(e.at)} · <span class="code">${e.hash.slice(0, 16)}</span></span></span></li>`)}</ul>`;
+}
+
+/* ---------- mais / ajustes ---------- */
+function pgMais() {
+  return h`<h1 class="h1 mb">Mais</h1><ul class="list panel mb">${[["busca", "Busca", "search"], ["ia", "Sugestões da IA", "bot"], ["auditoria", "Trilha de auditoria", "shield"], ["ajustes", "Ajustes", "gear"]].map(([k, l, i]) => h`<li><a class="item" href="#/${k}">${ic(i)}<span class="grow">${l}</span>${ic("right")}</a></li>`)}</ul>`;
+}
+function pgAjustes() {
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  return h`<h1 class="h1 mb">Ajustes</h1>
+    <section class="panel pad mb"><h2 class="h2">Tema</h2><div class="chips" role="radiogroup">${[["light", "Claro", "sun"], ["system", "Do sistema", "monitor"], ["dark", "Escuro", "moon"]].map(([k, l, i]) => h`<button class="chip ${S.theme === k ? "on" : ""}" data-a="theme" data-v="${k}" role="radio" aria-checked="${S.theme === k}"><span class="row" style="gap:6px">${ic(i)}${l}</span></button>`)}</div></section>
+    <section class="panel pad mb"><h2 class="h2">Perfil de demonstração</h2><div class="row">${avatar(me(), 38)}<div class="grow"><div style="font-weight:600">${me().name}</div><div class="xs muted">${ROLE[me().role]}</div></div><button class="btn" data-a="persona">Trocar</button></div></section>
+    <section class="panel pad mb"><h2 class="h2">Aplicativo</h2>
+      <p class="small ink2" style="margin:0 0 10px">${standalone ? "Rodando como aplicativo instalado." : deferredInstall ? "Este navegador permite instalar o protótipo." : "No celular: menu do navegador → “Adicionar à tela inicial”. Os dados ficam salvos neste aparelho."}</p>
+      <div class="row wrap">${deferredInstall ? h`<button class="btn p" data-a="install">${ic("install")}Instalar</button>` : ""}<button class="btn" data-a="export">${ic("dl")}Exportar dados (JSON)</button><button class="btn danger" data-a="reset">${ic("refresh")}Restaurar dados de exemplo</button></div>
+      <p class="xxs muted" style="margin:10px 0 0">A versão de produção (pacote do projeto) registra service worker com cache offline; um arquivo único publicado não pode registrar service worker, então aqui a persistência é local e a instalação depende do navegador.</p></section>
+    <section class="panel pad"><h2 class="h2">Sobre o protótipo</h2><p class="small ink2" style="margin:0">Mesmas regras do sistema: codificação por máscara, máquina de estados da revisão, arquivos congelados após elaboração, segregação autor/aprovador, comentários obrigatórios bloqueando aprovação, GRD numerada com manifesto SHA-256, check-out exclusivo, trilha de auditoria encadeada e o portão humano para a IA. O OCR é simulado aqui; no sistema roda Tesseract/PaddleOCR no worker.</p>
+      <p class="xs muted" style="margin:8px 0 0">Roteiro sugerido: como Ana, envie um documento em elaboração para verificação → como Rui, aprove → como Carla, conclua, emita uma GRD e registre o retorno do cliente → crie a revisão seguinte. Para ver a segregação de funções, crie um documento como Carla, envie com ela mesma no controle e tente aprovar. No isométrico da linha de vapor, a rev. B só é aprovada depois que o comentário obrigatório da rev. A for tratado — use “Verificar comentários anteriores”.</p></section>`;
+}
+
+/* ---------- formulários (folhas) ---------- */
+function formNewDoc() {
+  sheet("Novo documento", h`<form id="fnew" data-form="newdoc">
+    <div class="field"><label class="label" for="nt">Título</label><input id="nt" class="input" name="title" required minlength="3" placeholder="Ex.: Arranjo geral da casa de bombas"></div>
+    <div class="grid g2"><div class="field"><label class="label" for="nd">Disciplina</label><select id="nd" class="input" name="disc">${Object.entries(DISC).map(([k, l]) => h`<option value="${k}">${k} · ${l}</option>`)}</select></div>
+      <div class="field"><label class="label" for="ny">Tipo</label><select id="ny" class="input" name="type">${Object.entries(TYPE).map(([k, l]) => h`<option value="${k}">${k} · ${l}</option>`)}</select></div></div>
+    <div class="field"><label class="label" for="nc">Código</label><input id="nc" class="input code" name="code" placeholder="Automático"><span class="hint">Vazio = gerado pela máscara ${PROJECT.mask}. Digite algo fora dela para ver a recusa INV-DOC-002.</span></div>
+    <div class="grid g2"><div class="field"><label class="label" for="na">Área</label><input id="na" class="input" name="area"></div><div class="field"><label class="label" for="nf">Confidencialidade</label><select id="nf" class="input" name="conf"><option>INTERNO</option><option>PUBLICO</option><option>CONFIDENCIAL</option><option>RESTRITO</option></select></div></div>
+  </form>`, h`<button class="btn" data-a="close">Cancelar</button><button class="btn p" form="fnew">Criar documento</button>`);
+}
+function formWorkflow(d, v) {
+  const revs = USERS.filter((u) => ["REVISOR", "CONTROLADOR", "ADMIN"].includes(u.role)), ctls = USERS.filter((u) => ["CONTROLADOR", "ADMIN"].includes(u.role));
+  sheet("Enviar para verificação", h`<form id="fwf" data-form="wf" data-doc="${d.id}" data-rev="${v.id}">
+    <p class="small muted" style="margin-top:0">${d.code} · rev. ${v.label}</p>
+    <ol class="list" style="display:flex;flex-direction:column;gap:10px">
+      <li class="panel pad"><div class="small" style="font-weight:600">Etapa 1 · Verificação técnica</div><div class="xs muted mb" style="margin-bottom:8px">Perfil REVISOR · prazo 48 h</div><select class="input" name="rev" aria-label="Revisor">${revs.map((u) => h`<option value="${u.id}">${u.name} (${ROLE[u.role]})</option>`)}</select></li>
+      <li class="panel pad"><div class="small" style="font-weight:600">Etapa 2 · Aprovação do controle de documentos</div><div class="xs muted" style="margin-bottom:8px">Perfil CONTROLADOR · prazo 24 h</div><select class="input" name="ctl" aria-label="Controle">${ctls.map((u) => h`<option value="${u.id}">${u.name} (${ROLE[u.role]})</option>`)}</select></li>
+    </ol><p class="xs muted">O autor não pode aprovar a própria revisão; o banco recusa essa combinação.</p></form>`,
+    h`<button class="btn" data-a="close">Cancelar</button><button class="btn p" form="fwf">${ic("play")}Iniciar workflow</button>`);
+}
+function formReturn(d, v) {
+  sheet("Registrar retorno do cliente", h`<form id="fret" data-form="return" data-doc="${d.id}" data-rev="${v.id}">
+    ${[["APROVADA", "A", "Aprovado", "Liberado para a finalidade de emissão."], ["APROVADA_COM_COMENTARIOS", "B", "Aprovado com comentários", "Incorporar comentários na próxima revisão."], ["REPROVADA", "C", "Reprovado", "Revisar e reemitir."]].map(([k, c, t, s], i) =>
+      h`<label class="panel pad mb row" style="cursor:pointer;align-items:flex-start"><input type="radio" name="to" value="${k}" ${i === 0 ? "checked" : ""} style="margin-top:4px"><span class="code" style="font-size:20px;font-weight:600;width:22px">${c}</span><span><span style="font-weight:500;display:block">${t}</span><span class="small muted">${s}</span></span></label>`)}
+  </form>`, h`<button class="btn" data-a="close">Cancelar</button><button class="btn p" form="fret">Registrar</button>`);
+}
+function formNewGrd() {
+  sheet("Nova GRD", h`<form id="fgrd" data-form="newgrd">
+    <div class="field"><label class="label" for="gr">Destinatário</label><input id="gr" class="input" name="recipient" value="${PROJECT.client}" required></div>
+    <div class="field"><label class="label" for="ge">E-mail</label><input id="ge" class="input" name="email" type="email" value="documentos@exemplo.com"></div>
+    <div class="field"><label class="label" for="gp">Finalidade</label><select id="gp" class="input" name="purpose">${Object.entries(PURPOSE).map(([k, l]) => h`<option value="${k}" ${k === "PA" ? "selected" : ""}>${k} · ${l}</option>`)}</select></div>
+    <div class="field"><label class="label" for="gn">Observações</label><textarea id="gn" class="input" name="notes"></textarea></div></form>`,
+    h`<button class="btn" data-a="close">Cancelar</button><button class="btn p" form="fgrd">Criar rascunho</button>`);
+}
+function formPersona() {
+  sheet("Trocar perfil", h`<ul class="list panel">${USERS.map((u) => h`<li><button class="item" data-a="login" data-id="${u.id}">${avatar(u, 36)}<span class="grow"><strong style="font-weight:600">${u.name}</strong><span class="xs muted" style="display:block">${ROLE[u.role]} · ${myTasks(u.id).length} pendência(s)</span></span>${u.id === S.me ? ic("check") : ""}</button></li>`)}</ul>
+    <button class="btn ghost block mt" data-a="logout">Sair</button>`);
+}
+
+/* ---------- upload + pipeline de OCR (simulado, mesmas etapas do worker) ---------- */
+function uploadFiles(d, v, files) {
+  try { Ops.lockCheck(d); need(v.status === "EM_ELABORACAO", "INV-REV-003", `revisão em ${v.status} tem arquivos congelados`); }
+  catch (e) { toast(e.message, "bad", e.code); return; }
+  const list = [...files]; if (!list.length) return;
+  const steps = ["Enviar e calcular SHA-256", "Normalizar para PDF", "Detectar camada de texto por página", "OCR: inclinação, orientação e contraste", "Gerar PDF/A pesquisável", "Gerar miniatura", "Ler o carimbo"];
+  let i = 0, fi = 0;
+  sheet("Processando arquivos", h`<p class="small" id="upname" style="margin-top:0"></p><div class="bar mb"><div id="upbar" style="width:0%"></div></div><ul class="steps" id="upsteps">${steps.map((s) => h`<li><span class="st"></span>${s}</li>`)}</ul>`);
+  const lis = () => [...document.querySelectorAll("#upsteps li")];
+  const tick = async () => {
+    const f = list[fi]; $("#upname").textContent = `${fi + 1}/${list.length} · ${f.name}`;
+    lis().forEach((li, k) => (li.className = k < i ? "ok" : k === i ? "run" : ""));
+    $("#upbar").style.width = `${((fi * steps.length + i) / (list.length * steps.length)) * 100}%`;
+    if (i < steps.length) { i++; setTimeout(tick, 260 + Math.random() * 260); return; }
+    let text = ocrText(d, v.label);
+    if (f.type.startsWith("text/") && f.size < 500000) { try { text = await f.text(); } catch { /* segue com texto sintético */ } }
+    const isImg = f.type.startsWith("image/"), native = f.type === "application/pdf" && Math.random() > .4;
+    const file = { id: uid(), name: f.name, role: f.type === "application/pdf" || isImg ? "PDF" : "NATIVO", size: f.size || 1024, pages: DRAWING.has(d.type) ? 2 : 3,
+      ocr: "CONCLUIDO", engine: native ? "texto-nativo" : "tesseract", conf: native ? null : 74 + Math.floor(Math.random() * 20), text, sha: sha256(f.name + f.size + f.lastModified + uid()) };
+    run(() => {
+      Ops.addFile(d, v, file);
+      if (DRAWING.has(d.type) && !S.sugg.some((s) => s.status === "PROPOSTA" && s.target.docId === d.id && s.kind === "METADADOS_CARIMBO"))
+        S.sugg.unshift({ id: uid(), kind: "METADADOS_CARIMBO", target: { type: "doc", docId: d.id }, conf: .72, engine: "carimbo-regex-v1", status: "PROPOSTA", at: nowIso(), payload: { escala: "1:50", folha: "1/2", formato: "A1", arquivo: f.name } });
+    });
+    fi++; i = 0;
+    if (fi < list.length) setTimeout(tick, 200);
+    else { closeSheet(); toast(`${list.length} arquivo(s) processado(s)${DRAWING.has(d.type) ? " — a IA leu o carimbo e deixou uma proposta" : ""}`); }
+  };
+  tick();
+}
+
+/* ---------- render ---------- */
+function applyTheme() {
+  const t = S.theme; if (t === "system") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme", t);
+  const dark = t === "dark" || (t === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", dark ? "#0E141A" : "#F3F5F6"));
+}
+function render() {
+  const app = $("#app");
+  if (!S.me) { app.innerHTML = login().__raw; return; }
+  const [r, id] = route();
+  const pages = { painel: pgPainel, docs: pgDocs, doc: () => pgDoc(id), tarefas: pgTarefas, grd: () => (id ? pgGrd(id) : pgGrds()), busca: pgBusca, ia: pgIA, auditoria: pgAuditoria, ajustes: pgAjustes, mais: pgMais };
+  const focusSel = document.activeElement?.dataset?.in, caret = document.activeElement?.selectionStart;
+  const scroll = window.scrollY;
+  app.innerHTML = shell((pages[r] || pgPainel)()).__raw;
+  if (focusSel) { const el = document.querySelector(`[data-in="${focusSel}"]`); if (el) { el.focus(); try { el.setSelectionRange(caret, caret); } catch { /* campo sem seleção */ } } }
+  window.scrollTo(0, scroll);
+}
+</script>
+<script>
+"use strict";
+/* ---------- ações por clique (delegação) ---------- */
+const A = {
+  close: closeSheet,
+  login: (el) => { S.me = el.dataset.id; save(); closeSheet(); if (!location.hash) location.hash = "#/painel"; render(); toast(`Perfil: ${me().name} · ${ROLE[me().role]}`); },
+  logout: () => { S.me = null; save(); closeSheet(); render(); },
+  persona: formPersona,
+  go: (el) => (location.hash = el.dataset.href),
+  newdoc: formNewDoc,
+  fstatus: (el) => { ui.filter.status = el.dataset.v; render(); },
+  fdisc: (el) => { ui.filter.disc = el.dataset.v; render(); },
+  rev: (el) => { ui.revSel = el.dataset.v; ui.page = 1; ui.draft = null; ui.draw = false; render(); },
+  tab: (el) => { ui.tab = el.dataset.v; render(); },
+  pg: (el) => { ui.page += +el.dataset.v; ui.draft = null; render(); },
+  zoom: (el) => { ui.zoom = Math.min(3, Math.max(.5, ui.zoom + +el.dataset.v * .25)); render(); },
+  draw: () => { ui.draw = !ui.draw; if (ui.draw) toast("Arraste sobre a prancha para marcar a área do comentário"); render(); },
+  nodraft: () => { ui.draft = null; render(); },
+  cm: (el) => { ui.act = el.dataset.v; ui.tab = "comentarios"; const d = findDoc(route()[1]); const hit = d && d.revs.flatMap((v) => v.comments).find((c) => c.id === el.dataset.v); if (hit && hit.page) ui.page = hit.page; render(); },
+  checkout: (el) => run(() => Ops.checkout(findDoc(el.dataset.id)), "Check-out feito — só você altera este documento"),
+  checkin: (el) => run(() => Ops.checkin(findDoc(el.dataset.id)), "Check-in feito"),
+  newrev: (el) => run(() => { const v = Ops.newRevision(findDoc(el.dataset.id)); ui.revSel = v.id; ui.tab = "arquivos"; return v; }, (v) => `Revisão ${v.label} criada em elaboração`),
+  wf: (el) => { const d = findDoc(el.dataset.id); formWorkflow(d, d.revs.find((v) => v.id === el.dataset.rev)); },
+  return: (el) => { const d = findDoc(el.dataset.id); formReturn(d, d.revs.find((v) => v.id === el.dataset.rev)); },
+  cancelrev: (el) => { const d = findDoc(el.dataset.id), v = d.revs.find((x) => x.id === el.dataset.rev);
+    if (confirm(`Cancelar a revisão ${v.label}? Ela deixa de poder ser emitida e o workflow ativo perde efeito.`)) run(() => Ops.cancelRev(d, v), "Revisão cancelada"); },
+  checkcm: (el) => { const d = findDoc(el.dataset.id), v = d.revs.find((x) => x.id === el.dataset.rev);
+    run(() => checkComments(d, v), (n) => (n ? `A IA encontrou ${n} comentário(s) com evidência de atendimento — revise a proposta` : "Nenhuma evidência nova de comentário atendido")); },
+  approve: (el) => { const d = findDoc(el.dataset.doc), v = d.revs.find((x) => x.id === el.dataset.rev);
+    run(() => Ops.decide(d, v, +el.dataset.i, "APROVADA"), (r) => (r === "concluida" ? "Workflow concluído — revisão aprovada internamente" : "Etapa aprovada — seguiu para o controle de documentos")); },
+  reject: (el) => { const d = findDoc(el.dataset.doc), v = d.revs.find((x) => x.id === el.dataset.rev);
+    sheet("Reprovar etapa", h`<form id="frej" data-form="reject" data-doc="${d.id}" data-rev="${v.id}" data-i="${el.dataset.i}"><p class="small muted" style="margin-top:0">${d.code} · rev. ${v.label}</p><label class="label" for="rn">Motivo</label><textarea id="rn" class="input" name="note" placeholder="O que precisa mudar (obrigatório)"></textarea><span class="hint">Deixe vazio para ver a recusa INV-WF-001.</span></form>`,
+      h`<button class="btn" data-a="close">Cancelar</button><button class="btn danger" form="frej">Devolver ao autor</button>`); },
+  resolve: (el) => { const d = findDoc(el.dataset.doc), v = d.revs.find((x) => x.id === el.dataset.rev), c = v.comments.find((x) => x.id === el.dataset.id);
+    sheet("Registrar tratamento", h`<form id="fres" data-form="resolve" data-doc="${d.id}" data-rev="${v.id}" data-id="${c.id}"><p class="small" style="margin-top:0">“${c.body}”</p><label class="label" for="rt">Como foi tratado</label><textarea id="rt" class="input" name="text" required></textarea>
+      <div class="row mt"><label class="row small"><input type="radio" name="st" value="RESOLVIDO" checked>Resolvido</label><label class="row small"><input type="radio" name="st" value="NAO_APLICAVEL">Não aplicável</label></div></form>`,
+      h`<button class="btn" data-a="close">Cancelar</button><button class="btn p" form="fres">Registrar</button>`); },
+  sugg: (el) => { const s = S.sugg.find((x) => x.id === el.dataset.id); run(() => Ops.decideSugg(s, el.dataset.v), el.dataset.v === "APLICADA" ? "Proposta aplicada com a sua decisão registrada" : "Proposta rejeitada"); },
+  newgrd: formNewGrd,
+  sel: (el) => { const k = el.dataset.v; ui.grdSel = el.checked ? [...ui.grdSel, k] : ui.grdSel.filter((x) => x !== k); render(); },
+  additems: (el) => { const g = S.grds.find((x) => x.id === el.dataset.id); run(() => { ui.grdSel.forEach((k) => { const [dId, rId] = k.split("|"); Ops.addItem(g, dId, rId); }); ui.grdSel = []; }, "Itens incluídos"); },
+  rmitem: (el) => { const g = S.grds.find((x) => x.id === el.dataset.id); run(() => Ops.removeItem(g, el.dataset.rev), "Item removido"); },
+  issue: (el) => { const g = S.grds.find((x) => x.id === el.dataset.id);
+    if (g.items.length && !confirm(`Emitir a GRD com ${g.items.length} item(ns)? A numeração é definitiva, os itens ficam congelados e as revisões aprovadas passam a EMITIDA.`)) return;
+    run(() => Ops.issueGrd(g), () => `${grdCode(g)} emitida · manifesto ${g.manifest.slice(0, 12)}…`); },
+  cancelgrd: (el) => { const g = S.grds.find((x) => x.id === el.dataset.id); if (confirm("Cancelar este rascunho?")) run(() => Ops.cancelGrd(g), "Rascunho cancelado"); },
+  print: () => window.print(),
+  mode: (el) => { ui.mode = el.dataset.v; render(); },
+  try: (el) => { ui.q = el.dataset.v; render(); },
+  theme: (el) => { S.theme = el.dataset.v; save(); applyTheme(); render(); },
+  tamper: () => { const e = S.audit[Math.max(0, Math.floor(S.audit.length / 3))]; ui.tampered = { n: e.n, data: e.data }; e.data = e.data.replace(/"}$/, ' (editado)"}').replace(/^\{\}$/, '{"x":"editado"}'); render(); toast(`Evento #${e.n} alterado sem recalcular o hash — veja a verificação`, "bad"); },
+  untamper: () => { const e = S.audit.find((x) => x.n === ui.tampered.n); e.data = ui.tampered.data; ui.tampered = null; render(); toast("Evento restaurado — cadeia íntegra de novo"); },
+  install: async () => { if (!deferredInstall) return; deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall = null; render(); },
+  export: () => { const b = new Blob([JSON.stringify(S, null, 2)], { type: "application/json" }); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "gplansis-docs-prototipo.json"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); },
+  reset: () => { if (!confirm("Restaurar os dados de exemplo? Tudo o que você fez neste navegador será descartado.")) return; const keep = { me: S.me, theme: S.theme }; seed(); Object.assign(S, keep); save(); location.hash = "#/painel"; render(); toast("Dados de exemplo restaurados"); },
+};
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-a]"); if (!el) return;
+  const fn = A[el.dataset.a]; if (!fn) return;
+  if (el.tagName === "INPUT") { fn(el); return; }
+  e.preventDefault(); fn(el);
+});
+
+/* ---------- formulários ---------- */
+const F = {
+  newdoc: (fd) => run(() => { const d = Ops.createDoc({ title: fd.get("title"), disc: fd.get("disc"), type: fd.get("type"), code: fd.get("code") || "", area: fd.get("area"), conf: fd.get("conf") }); closeSheet(); location.hash = `#/doc/${d.id}`; ui.tab = "arquivos"; return d; }, (d) => `Documento ${d.code} criado — anexe os arquivos da revisão A`),
+  comment: (fd, f) => { const d = findDoc(f.dataset.doc), v = d.revs.find((x) => x.id === f.dataset.rev);
+    run(() => { Ops.comment(d, v, { body: fd.get("body"), cat: fd.get("cat"), ...(ui.draft ? { page: ui.draft.page, x: ui.draft.x, y: ui.draft.y, w: ui.draft.w, h: ui.draft.h } : { page: null, x: null, y: null, w: null, h: null }) }); ui.draft = null; }, "Comentário registrado"); },
+  wf: (fd, f) => { const d = findDoc(f.dataset.doc), v = d.revs.find((x) => x.id === f.dataset.rev); run(() => { Ops.startWorkflow(d, v, fd.get("rev"), fd.get("ctl")); closeSheet(); ui.tab = "workflow"; }, "Workflow iniciado — revisão em verificação"); },
+  return: (fd, f) => { const d = findDoc(f.dataset.doc), v = d.revs.find((x) => x.id === f.dataset.rev); run(() => { Ops.clientReturn(d, v, fd.get("to")); closeSheet(); }, "Retorno do cliente registrado"); },
+  reject: (fd, f) => { const d = findDoc(f.dataset.doc), v = d.revs.find((x) => x.id === f.dataset.rev); run(() => { Ops.decide(d, v, +f.dataset.i, "REPROVADA", fd.get("note")); closeSheet(); }, "Revisão devolvida ao autor"); },
+  resolve: (fd, f) => { const d = findDoc(f.dataset.doc), v = d.revs.find((x) => x.id === f.dataset.rev), c = v.comments.find((x) => x.id === f.dataset.id);
+    run(() => { Ops.resolve(d, v, c, fd.get("st"), fd.get("text"), curRev(d).label); closeSheet(); }, "Tratamento registrado"); },
+  newgrd: (fd) => run(() => { const g = Ops.createGrd({ recipient: fd.get("recipient"), email: fd.get("email"), purpose: fd.get("purpose"), notes: fd.get("notes") }); closeSheet(); location.hash = `#/grd/${g.id}`; }, "Rascunho de GRD criado — inclua as revisões"),
+  receive: (fd, f) => run(() => Ops.receiveGrd(S.grds.find((x) => x.id === f.dataset.id), fd.get("who")), "Recebimento registrado"),
+};
+document.addEventListener("submit", (e) => { const f = e.target.closest("[data-form]"); if (!f) return; e.preventDefault(); F[f.dataset.form]?.(new FormData(f), f); });
+
+/* ---------- campos com re-render ---------- */
+let tIn;
+document.addEventListener("input", (e) => {
+  const k = e.target.dataset?.in; if (!k) return;
+  clearTimeout(tIn);
+  tIn = setTimeout(() => { if (k === "fq") ui.filter.q = e.target.value; if (k === "q") ui.q = e.target.value; render(); }, 180);
+});
+document.addEventListener("change", (e) => {
+  const up = e.target.dataset?.upload; if (!up) return;
+  const d = findDoc(up), v = d.revs.find((x) => x.id === e.target.dataset.rev); uploadFiles(d, v, e.target.files); e.target.value = "";
+});
+
+/* ---------- gesto de marcação na prancha (mouse, caneta ou dedo) ---------- */
+let drag = null;
+document.addEventListener("pointerdown", (e) => {
+  const ov = e.target.closest(".overlay.drawing"); if (!ov || e.target.closest(".cm")) return;
+  const r = ov.getBoundingClientRect(), p = { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
+  const box = document.createElement("div"); box.className = "drag"; ov.appendChild(box);
+  drag = { ov, r, x0: p.x, y0: p.y, x1: p.x, y1: p.y, box }; ov.setPointerCapture(e.pointerId); e.preventDefault();
+});
+document.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const c = (v) => Math.min(1, Math.max(0, v));
+  drag.x1 = c((e.clientX - drag.r.left) / drag.r.width); drag.y1 = c((e.clientY - drag.r.top) / drag.r.height);
+  Object.assign(drag.box.style, { left: Math.min(drag.x0, drag.x1) * 100 + "%", top: Math.min(drag.y0, drag.y1) * 100 + "%", width: Math.abs(drag.x1 - drag.x0) * 100 + "%", height: Math.abs(drag.y1 - drag.y0) * 100 + "%" });
+});
+document.addEventListener("pointerup", () => {
+  if (!drag) return;
+  const r = { page: ui.page, x: Math.min(drag.x0, drag.x1), y: Math.min(drag.y0, drag.y1), w: Math.abs(drag.x1 - drag.x0), h: Math.abs(drag.y1 - drag.y0) };
+  drag = null;
+  if (r.w > .015 && r.h > .012) { ui.draft = r; ui.draw = false; ui.tab = "comentarios"; render(); setTimeout(() => { const t = $('[data-form="comment"] textarea'); t?.focus(); t?.scrollIntoView({ block: "center", behavior: "smooth" }); }, 50); }
+  else render();
+});
+
+/* ---------- teclado ---------- */
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && $("#layer").innerHTML) closeSheet();
+  const typing = /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
+  if (!typing && S.me && (e.key === "/" || (e.key === "k" && (e.ctrlKey || e.metaKey)))) { e.preventDefault(); location.hash = "#/busca"; }
+});
+
+/* ---------- PWA: manifesto e ícones gerados no próprio arquivo ---------- */
+function pngIcon(size, maskable) {
+  const svg = LOGO.__raw.replace("<svg", `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"`);
+  return new Promise((res) => {
+    const img = new Image();
+    img.onload = () => { const c = document.createElement("canvas"); c.width = c.height = size; const x = c.getContext("2d");
+      if (maskable) { x.fillStyle = "#14202B"; x.fillRect(0, 0, size, size); const p = size * .12; x.drawImage(img, p, p, size - 2 * p, size - 2 * p); } else x.drawImage(img, 0, 0, size, size);
+      res(c.toDataURL("image/png")); };
+    img.onerror = () => res(null);
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  });
+}
+async function setupPwa() {
+  try {
+    const [i192, i512, im] = await Promise.all([pngIcon(192), pngIcon(512), pngIcon(512, true)]);
+    if (i192) { const l = document.createElement("link"); l.rel = "apple-touch-icon"; l.href = i192; document.head.appendChild(l); }
+    const manifest = { name: "GPlanSiS|DOCS — protótipo", short_name: "GPS DOCS", lang: "pt-BR", display: "standalone", start_url: location.href.split("#")[0], scope: location.href.split("#")[0],
+      background_color: "#F3F5F6", theme_color: "#14202B", description: "Gestão de documentos técnicos de engenharia",
+      icons: [i192 && { src: i192, sizes: "192x192", type: "image/png" }, i512 && { src: i512, sizes: "512x512", type: "image/png" }, im && { src: im, sizes: "512x512", type: "image/png", purpose: "maskable" }].filter(Boolean) };
+    const l = document.createElement("link"); l.rel = "manifest";
+    l.href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" }));
+    document.head.appendChild(l);
+  } catch { /* manifesto é melhoria progressiva */ }
+}
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredInstall = e; if (route()[0] === "ajustes") render(); });
+
+/* ---------- início ---------- */
+S = load() || seed();
+applyTheme();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { applyTheme(); });
+let lastDoc = null;
+window.addEventListener("hashchange", () => {
+  const [r, id] = route();
+  ui.draft = null; ui.draw = false; ui.act = null;
+  if (r !== "doc" || id !== lastDoc) { ui.revSel = null; ui.page = 1; ui.zoom = 1; if (r === "doc") ui.tab = "comentarios"; }
+  lastDoc = r === "doc" ? id : null;
+  window.scrollTo(0, 0); closeSheet(); render();
+});
+save();
+render();
+setupPwa();
+</script>
+</body>
+</html>

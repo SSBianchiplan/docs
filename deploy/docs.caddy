@@ -1,0 +1,15 @@
+# GPlanSiS|DOCS — bloco do Caddy (importado pelo Caddyfile principal)
+# Stack Docker (docker-compose.yml), container web publicado em 127.0.0.1:${WEB_PORT}
+docs.exemplo.com {
+	encode zstd gzip
+	request_body {
+		max_size 512MB
+	}
+	reverse_proxy 127.0.0.1:8080 {
+		header_up X-Forwarded-Proto https
+		transport http {
+			read_timeout 300s
+			write_timeout 300s
+		}
+	}
+}

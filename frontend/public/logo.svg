@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="GPlanSiS|DOCS">
+  <rect width="64" height="64" rx="14" fill="#14202B"/>
+  <!-- folha técnica com dobra -->
+  <path d="M17 11h21l10 10v32a2 2 0 0 1-2 2H17a2 2 0 0 1-2-2V13a2 2 0 0 1 2-2z" fill="#F3F5F6"/>
+  <path d="M38 11v8a2 2 0 0 0 2 2h8z" fill="#9FB3C2"/>
+  <!-- carimbo (title block) -->
+  <path d="M15 42h33M30 42v13" stroke="#14202B" stroke-width="2"/>
+  <path d="M20 19h12M20 25h20M20 31h20M20 36h14" stroke="#14202B" stroke-width="2.4" stroke-linecap="round" opacity=".55"/>
+  <!-- delta de revisão -->
+  <path d="M39 45.5l5.5 8h-11z" fill="#D2412F"/>
+</svg>
