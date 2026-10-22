@@ -12,6 +12,7 @@ import logging
 import re
 import unicodedata
 from dataclasses import dataclass
+from typing import Any
 
 log = logging.getLogger(__name__)
 
@@ -68,9 +69,37 @@ def heuristic(comments: list[dict[str, str]], old: str, new: str) -> list[Verdic
     return out
 
 
-def with_claude(comments: list[dict[str, str]], old: str, new: str, api_key: str, model: str) -> list[Verdict]:
+MAX_PROMPT = 150_000     # caracteres por verificação (comentários + diff); o excesso é cortado
+MAX_LINHA = 2_000        # uma linha/comentário gigante não pode dominar o pedido
+
+
+def _corta(linhas: list[str], orcamento: int) -> list[str]:
+    out, total = [], 0
+    for ln in linhas:
+        ln = ln[:MAX_LINHA]
+        if total + len(ln) + 1 > orcamento:
+            break
+        out.append(ln)
+        total += len(ln) + 1
+    return out
+
+
+def with_claude(comments: list[dict[str, str]], old: str, new: str, api_key: str, model: str,
+                uso: dict[str, Any] | None = None) -> list[Verdict]:
     import anthropic
     added, removed = diff_lines(old, new, limit=250)
+    cortados: list[dict[str, str]] = []
+    total = 0
+    for c in comments[:200]:
+        item = {"id": c["id"], "body": c["body"][:MAX_LINHA]}
+        total += len(json.dumps(item, ensure_ascii=False)) + 2
+        if total > MAX_PROMPT // 2:
+            break
+        cortados.append(item)
+    comments = cortados
+    resto = max(0, MAX_PROMPT - len(json.dumps(comments, ensure_ascii=False)) - 1000)
+    added = _corta(added, resto * 2 // 3)
+    removed = _corta(removed, resto - sum(len(a) + 1 for a in added))
     prompt = (
         "Você verifica se comentários de revisão de um documento técnico de engenharia foram atendidos "
         "na nova revisão. Responda SOMENTE um array JSON: "
@@ -79,9 +108,11 @@ def with_claude(comments: list[dict[str, str]], old: str, new: str, api_key: str
         f"COMENTÁRIOS:\n{json.dumps(comments, ensure_ascii=False)}\n\n"
         "LINHAS ADICIONADAS NA NOVA REVISÃO:\n" + "\n".join(added) +
         "\n\nLINHAS REMOVIDAS:\n" + "\n".join(removed))
-    client = anthropic.Anthropic(api_key=api_key)
+    client = anthropic.Anthropic(api_key=api_key, timeout=120.0, max_retries=1)
     msg = client.messages.create(model=model, max_tokens=2000,
                                  messages=[{"role": "user", "content": prompt}])
+    if uso is not None:      # tokens reais para a cota (ia_cota), antes de qualquer falha de parse
+        uso["modelo"], uso["usage"] = msg.model, msg.usage
     raw = "".join(b.text for b in msg.content if getattr(b, "type", "") == "text")
     raw = re.sub(r"```json|```", "", raw).strip()
     items = json.loads(raw)
@@ -91,12 +122,17 @@ def with_claude(comments: list[dict[str, str]], old: str, new: str, api_key: str
             for i in items if i.get("attended") and str(i.get("id")) in valid]
 
 
-def check(comments: list[dict[str, str]], old: str, new: str, api_key: str | None, model: str) -> list[Verdict]:
+def check(comments: list[dict[str, str]], old: str, new: str, api_key: str | None, model: str,
+          uso: dict[str, Any] | None = None) -> list[Verdict]:
     if not comments or not new.strip():
         return []
     if api_key:
         try:
-            return with_claude(comments, old, new, api_key, model)
-        except Exception as e:  # noqa: BLE001 — falha do provedor cai para heurística, registrada
-            log.warning("verificação via Claude falhou (%s); usando heurística", e)
+            return with_claude(comments, old, new, api_key, model, uso)
+        except Exception as e:  # noqa: BLE001 — falha do provedor cai para heurística, registrada (só o tipo)
+            from app.services.ia_cota import erro_curto
+            cod = "json" if isinstance(e, (ValueError, KeyError, TypeError)) else erro_curto(e)
+            if uso is not None:
+                uso["erro"] = cod
+            log.warning("verificação via Claude falhou (%s); usando heurística", cod)
     return heuristic(comments, old, new)

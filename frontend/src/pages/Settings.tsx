@@ -258,7 +258,40 @@ function AbaIA() {
           <p className="text-[12px] text-muted mt-3">Cifragem: {c.cifragem}.</p>
         </form>
       </Secao>
+      <CotaIA />
     </>
+  );
+}
+
+interface UsoIA {
+  cota_padrao_usd: number; gasto_usd: number; cota_usd: number;
+  por_usuario?: { id: string; name: string; ia_cota_usd: number | null; chamadas: number; gasto_usd: number }[];
+}
+
+function CotaIA() {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["config-ia-uso"], queryFn: () => api.get<UsoIA>("/config/ia/uso") });
+  const [padrao, setPadrao] = useState("");
+  useEffect(() => { if (q.data) setPadrao(String(q.data.cota_padrao_usd)); }, [q.data]);
+  const salvar = useMutation({ mutationFn: () => api.put<{ cota_padrao_usd: number }>("/config/ia/cota", { cota_usd: Number(padrao.replace(",", ".")) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["config-ia-uso"] }); toast.ok("Cota padrão salva"); }, onError: toast.err });
+  const individual = useMutation({ mutationFn: (a: { id: string; v: string }) => api.put(`/config/ia/cota/usuarios/${a.id}`, { cota_usd: a.v.trim() === "" ? null : Number(a.v.replace(",", ".")) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["config-ia-uso"] }); toast.ok("Cota da pessoa salva"); }, onError: toast.err });
+  if (q.error) return <ErrorBox error={q.error} />;
+  if (!q.data) return null;
+  const usd = (n: number) => `US$ ${Number(n).toFixed(2).replace(".", ",")}`;
+  return (
+    <Secao titulo="Cota mensal de IA" sub="Gasto real por pessoa (tokens × preço do modelo) no mês corrente. Quem atinge a cota recebe aviso e a verificação passa a usar só a heurística, sem custo.">
+      <form className="flex flex-wrap items-end gap-2 mb-3" onSubmit={(e) => { e.preventDefault(); salvar.mutate(); }}>
+        <Field label="Cota padrão por pessoa (US$ / mês)"><input className="input max-w-[10rem]" inputMode="decimal" value={padrao} onChange={(e) => setPadrao(e.target.value)} /></Field>
+        <button className="btn btn-primary mb-4" disabled={salvar.isPending}>Salvar</button>
+      </form>
+      {q.data.por_usuario?.filter((u) => u.chamadas > 0 || u.ia_cota_usd !== null).map((u) => (
+        <Linha key={u.id} rotulo={u.name}>{usd(u.gasto_usd)} de {usd(u.ia_cota_usd ?? q.data.cota_padrao_usd)} · {u.chamadas} chamada(s)
+          <input className="input max-w-[7rem] ml-2" inputMode="decimal" placeholder="padrão" defaultValue={u.ia_cota_usd ?? ""} title="Cota própria (vazio = padrão)"
+            onBlur={(e) => { if (e.target.value !== String(u.ia_cota_usd ?? "")) individual.mutate({ id: u.id, v: e.target.value }); }} />
+        </Linha>))}
+    </Secao>
   );
 }
 

@@ -7,7 +7,7 @@ from app.api.deps import Conn
 from app.core.db import fetch_all, fetch_one
 from app.core.errors import DomainError
 from app.core.security import CurrentUser, LoginThrottle
-from app.services import access
+from app.services import access, ia_cota
 from app.services.queue import enqueue_comment_check
 
 router = APIRouter(tags=["comentários"])
@@ -84,7 +84,10 @@ async def check_comments(revision_id: str, conn: Conn, user: CurrentUser, bg: Ba
     espera = max(COTA_IA_USUARIO.retry_after(ku), COTA_IA_REVISAO.retry_after(kr))
     if espera:
         raise DomainError(f"Limite de verificações pela IA atingido; tente de novo em {espera // 60 + 1} min", 429)
+    from app.core import sysconfig
+    if (await sysconfig.ia_config())["pronta"]:
+        await ia_cota.verifica(conn, user.id)      # 402 cota mensal em US$ / 429 ritmo, antes de enfileirar
     COTA_IA_USUARIO.fail(ku)
     COTA_IA_REVISAO.fail(kr)
-    bg.add_task(enqueue_comment_check, revision_id)
+    bg.add_task(enqueue_comment_check, revision_id, user.id)
     return {"status": "enfileirado"}

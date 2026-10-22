@@ -72,7 +72,7 @@ def ia_de_valor(v: dict[str, Any]) -> dict[str, Any]:
         chave, origem = s.anthropic_api_key, "env"
     ativo = v.get("ativo", True)
     out = {"chave": chave, "origem": origem, "ativo": ativo, "modelo": v.get("modelo") or s.anthropic_model,
-           "pronta": bool(chave and ativo), "final": (chave[-4:] if chave else None), "ilegivel": ilegivel,
+           "pronta": bool(chave and ativo), "cota_usd": float(v.get("cota_usd", 20.0)), "final": (chave[-4:] if chave else None), "ilegivel": ilegivel,
            "atualizado_em": v.get("_atualizado_em"), "atualizado_por": v.get("_atualizado_por")}
     return out
 

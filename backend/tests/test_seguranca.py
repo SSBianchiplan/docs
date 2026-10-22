@@ -274,7 +274,7 @@ def test_verificacao_por_ia_exige_perfil_e_tem_cota(api: tuple[Any, dict[str, st
                                                    monkeypatch: pytest.MonkeyPatch) -> None:
     from app.api import comments
     cli, ids = api
-    monkeypatch.setattr(comments, "enqueue_comment_check", lambda rid: None)
+    monkeypatch.setattr(comments, "enqueue_comment_check", lambda *a: None)
     rota = f"/api/revisions/{ids['r_interno']}/check-comments"
     assert cli.post(rota, headers=_bearer(ids, "leitor")).status_code == 403        # LEITOR não dispara a IA
     codigos = [cli.post(rota, headers=_bearer(ids, "autor")).status_code for _ in range(4)]

@@ -24,6 +24,7 @@ from app.core.config import get_settings
 from app.core.db import fetch_all, fetch_one, scalar
 from app.core.errors import DomainError
 from app.core.security import CurrentUser, issue_token
+from app.services import ia_cota
 
 router = APIRouter(prefix="/config", tags=["configurações"])
 
@@ -207,6 +208,7 @@ async def testa_ia(body: IATeste, conn: Conn, user: CurrentUser) -> dict[str, An
         if modelo not in disponiveis:
             return {"ok": False, "erro": f"A chave é válida, mas não tem acesso a {modelo}", "modelos": disponiveis}
         msg = await cli.messages.create(model=modelo, max_tokens=256, messages=[{"role": "user", "content": "Responda apenas: OK"}])
+        await ia_cota.registra(user.id, "teste_chave", msg.model, msg.usage, True, None, int((time.time() - t0) * 1000))
     except anthropic.AuthenticationError:
         return {"ok": False, "erro": "Chave da Anthropic recusada (inválida ou revogada)", "modelos": []}
     except anthropic.PermissionDeniedError:

@@ -31,9 +31,9 @@ async def enqueue_file(file_id: str) -> None:
         log.warning("fila indisponível (%s); %s será reenfileirado pelo sweep", e, file_id)
 
 
-async def enqueue_comment_check(revision_id: str) -> None:
+async def enqueue_comment_check(revision_id: str, user_id: str | None = None) -> None:
     try:
-        await (await pool()).enqueue_job("check_comments", revision_id, _job_id=f"cmt:{revision_id}:{_slot()}",
+        await (await pool()).enqueue_job("check_comments", revision_id, user_id, _job_id=f"cmt:{revision_id}:{_slot()}",
                                          _defer_by=2)
     except Exception as e:  # noqa: BLE001
         log.warning("fila indisponível (%s); verificação de comentários de %s não enfileirada", e, revision_id)

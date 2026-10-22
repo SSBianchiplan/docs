@@ -26,6 +26,7 @@ from app.core.config import get_settings
 from app.core.db import engine, fetch_one, scalar
 from app.core.errors import DomainError, db_error_handler, domain_error_handler
 from app.core.security import hash_password
+from app.services import ia_cota
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("api")
@@ -66,11 +67,12 @@ app = FastAPI(title="GPlanSiS|DOCS API", version="0.1.0", lifespan=lifespan,
               openapi_url="/api/openapi.json" if _DEV else None)
 app.add_middleware(CORSMiddleware, allow_origins=get_settings().cors_origins, allow_credentials=True,
                    allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(ia_cota.LimiteCorpoIA)   # 413 em corpo grande nas rotas de IA, antes do parse
 app.add_exception_handler(DBAPIError, db_error_handler)
 app.add_exception_handler(DomainError, domain_error_handler)
 
 for r in (auth, access_requests, project_admin, projects, documents, workflow, comments, grd, search, dashboard, ai, audit,
-          integracao, configuracoes):
+          integracao, configuracoes, ia_cota):
     app.include_router(r.router, prefix="/api")
 
 

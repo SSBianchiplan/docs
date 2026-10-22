@@ -20,7 +20,7 @@ from arq.connections import RedisSettings
 from app.core import storage
 from app.core.config import get_settings
 from app.core.db import engine, fetch_all, fetch_one
-from app.services import comment_check
+from app.services import comment_check, ia_cota
 from app.services.ocr import pipeline, titleblock
 
 log = logging.getLogger("worker")
@@ -122,10 +122,12 @@ async def process_file(ctx: dict[str, Any], file_id: str) -> str:
     return "concluido"
 
 
-async def check_comments(ctx: dict[str, Any], revision_id: str) -> int:
+async def check_comments(ctx: dict[str, Any], revision_id: str, user_id: str | None = None) -> int:
+    """user_id: quem pediu a verificação (cota de IA); sem ele, conta para o autor da revisão."""
     s = get_settings()
     async with engine().begin() as conn:
-        cur = await fetch_one(conn, """SELECT r.id::text, r.label, r.document_id::text, r.created_at
+        cur = await fetch_one(conn, """SELECT r.id::text, r.label, r.document_id::text, r.created_at,
+                                              r.created_by::text AS created_by
                                        FROM revision r WHERE r.id = :r""", r=revision_id)
         if not cur:
             return 0
@@ -149,8 +151,23 @@ async def check_comments(ctx: dict[str, Any], revision_id: str) -> int:
         return 0
     from app.core import sysconfig
     ia = await sysconfig.ia_config()      # painel Configurações › Assistente IA (o .env vale como reserva)
-    verdicts = await asyncio.to_thread(comment_check.check, comments, by.get(prev["id"], ""), by[revision_id],
-                                       ia["chave"] if ia["pronta"] else None, ia["modelo"])
+    chave, uso_id = (ia["chave"] if ia["pronta"] else None), None
+    uso: dict[str, Any] = {}
+    if chave:   # cota mensal / ritmo da pessoa (ia_cota): sem saldo, fica a heurística, sem custo
+        uso_id = await ia_cota.reserva(user_id or cur["created_by"], "verificar_comentarios", revision_id)
+        if uso_id is None:
+            chave = None
+    t0 = time.time()
+    try:
+        verdicts = await asyncio.to_thread(comment_check.check, comments, by.get(prev["id"], ""), by[revision_id],
+                                           chave, ia["modelo"], uso)
+    except BaseException:
+        uso.setdefault("erro", "interno")
+        raise
+    finally:
+        if uso_id is not None:
+            await ia_cota.fecha(uso_id, uso.get("modelo") or ia["modelo"], uso.get("usage"), "erro" not in uso,
+                                uso.get("erro"), int((time.time() - t0) * 1000))
     async with engine().begin() as conn:
         for v in verdicts:
             await fetch_one(conn, """
